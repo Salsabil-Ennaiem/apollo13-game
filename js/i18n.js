@@ -85,10 +85,9 @@ window.A13_I18N = {
     errWebgl: "Reload the page. WebGL must be enabled in your browser.",
 
     // Intro, roles, placement (v1.1)
-    intro1: "“Houston, we’ve had a problem.” April 13, 1970: about 56 hours into the flight, an oxygen tank explodes on Apollo 13.",
-    intro2: "Lovell, Swigert and Haise move into the Lunar Module, a lifeboat built for two astronauts for about two days.",
-    intro3: "Three people breathing out CO₂ overload it. The spare canisters from the Command Module are square. The Lunar Module’s receptacle is round.",
-    intro4: "Houston is on the line. Use only what is on board. Go.",
+    intro1: "Life support is failing in the Lunar Module.",
+    intro2: "The square canisters won't fit the round slots.",
+    intro3: "Tape together an emergency filter adapter—save Apollo 13!",
     skip: "Skip intro ▶",
     objAlt: "<b>Alternatives:</b> the checklist cover is also rigid, and a stowage bag can also be the airtight sleeve.",
     roleTaken: "That job is already done by: {item}.",
@@ -115,12 +114,13 @@ window.A13_I18N = {
     },
 
     // Phase 1: Think – briefing MCQ
-    briefAlert: "Warning: CO₂ levels rising. Command Module filters are square, but the Lunar Module sockets are round.",
-    briefTitle: "What is the primary engineering objective?",
-    briefQ1: "Force the square canister inside the round hole.",
-    briefQ2: "Build an airtight adapter using onboard materials to direct airflow.",
-    briefWrong: "Not quite. Forcing the square canister would break the seal and waste time.",
-    briefRight: "Correct. Build an airtight adapter — then assemble it step by step.",
+    briefAlert: "Emergency: three astronauts are breathing in a cabin made for two. CO₂ is rising and will become dangerous.",
+    briefTitle: "Read this carefully, then choose the best plan.",
+    briefExplain: "The spare air filters from the Command Module are square. The Lunar Module’s air sockets are round. A square filter cannot plug into a round socket. You cannot force it. You must invent a bridge — an adapter — from plastic bags, cardboard covers, a suit hose and duct tape, so filtered air can still reach the cabin.",
+    briefQ1: "Push the square filter hard into the round socket until it fits.",
+    briefQ2: "Build a sealed adapter from onboard materials so air can flow from the round socket through the square filter.",
+    briefWrong: "That will not work. Forcing the square filter would damage the socket and leave gaps for CO₂.",
+    briefRight: "Yes. Build a sealed adapter step by step — that is what the crew did in 1970.",
     briefContinue: "Begin assembly",
 
     // Telemetry labels
@@ -227,10 +227,9 @@ window.A13_I18N = {
     errWebgl: "Rechargez la page. WebGL doit être activé dans le navigateur.",
 
     // Intro, rôles, placement (v1.1)
-    intro1: "« Houston, nous avons eu un problème. » 13 avril 1970 : environ 56 heures après le départ, un réservoir d'oxygène explose à bord d'Apollo 13.",
-    intro2: "Lovell, Swigert et Haise passent dans le module lunaire, un canot de sauvetage conçu pour deux astronautes pendant environ deux jours.",
-    intro3: "Trois personnes qui expirent du CO₂ le saturent. Les cartouches de rechange du module de commande sont carrées. L'orifice du module lunaire est rond.",
-    intro4: "Houston est en ligne. Utilisez seulement ce qui est à bord. Go.",
+    intro1: "Le système de survie du module lunaire tombe en panne.",
+    intro2: "Les cartouches carrées ne s'adaptent pas aux prises rondes.",
+    intro3: "Fabriquez un adaptateur de filtre d'urgence avec du ruban adhésif — sauvez Apollo 13 !",
     skip: "Passer l'intro ▶",
     objAlt: "<b>Alternatives :</b> la couverture de checklist est aussi rigide, et un sac de rangement peut aussi servir de gaine étanche.",
     roleTaken: "Ce rôle est déjà rempli par : {item}.",

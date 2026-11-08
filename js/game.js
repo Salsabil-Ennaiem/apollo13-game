@@ -414,6 +414,18 @@ function radioTick(open){            // short "push-to-talk" click + static, lik
   s.connect(f); f.connect(gg); gg.connect(master); s.start(t0); s.stop(t0+.13);
 }
 let speakTimer=0;
+function speakIntroLine(msg){
+  // Dedicated intro speech: cancel previous, then speak full line at clear rate
+  if(muted||!("speechSynthesis" in window)) return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(msg), v=bestVoice();
+    if(v){ u.voice=v; u.lang=v.lang; }
+    else u.lang=(window.A13_LANG==="fr"?"fr-FR":"en-US");
+    u.rate=.92; u.pitch=1; u.volume=Math.min(1, vol||.8);
+    speechSynthesis.speak(u);
+  }catch(_){}
+}
 function say(msg, speak){
   $("sub").textContent = msg;
   if(!speak||muted||!("speechSynthesis" in window)) return;
@@ -695,7 +707,7 @@ function setState(s){
 }
 
 /* ----- Apollo 13 opening: explosion, alarm, lifeboat, the square-vs-round problem ----- */
-const INTRO=[["intro1",3600],["intro2",4200],["intro3",4800],["intro4",2800]];
+const INTRO=[["intro1",3800],["intro2",3800],["intro3",4500]];
 const INTRO_TOTAL=INTRO.reduce((a,x)=>a+x[1],0);
 let introTimers=[], introStart=0;
 function startIntro(){
@@ -708,15 +720,17 @@ function startIntro(){
   stopAllSamples();
   setState("intro"); introStart=performance.now(); alarmOn();
   let acc=0;
+  // Speak each line fully; schedule next only after duration (TTS needs time)
   INTRO.forEach(([k,ms],i)=>{
     introTimers.push(setTimeout(()=>{
       $("introTxt").textContent=t(k);
-      say(t(k), true); // fiction narrator — clear spoken briefing
-      if(i===2) alarmOff();
+      speakIntroLine(t(k));
+      if(i===INTRO.length-1) alarmOff();
     },acc));
     acc+=ms;
   });
-  introTimers.push(setTimeout(()=>endIntro(),acc));
+  // Small buffer after last line so the final sentence is not cut
+  introTimers.push(setTimeout(()=>endIntro(),acc+600));
 }
 function endIntro(){
   if(G.state!=="intro") return;
@@ -1096,7 +1110,7 @@ function init(){
   $("bResume").onclick=resume;
   $("bView").onclick=resetView;
   $("bMute").onclick=()=>{
-    muted=!muted; $("bMute").textContent=muted?"🔇":"🔊";
+    muted=!muted;
     $("bMute").setAttribute("aria-pressed",String(muted)); setVol();
     if(muted){ stopAllSamples(); }
     else if(G.state==="play"){ startPlayRadio(); setBreathMode(G.co2>=70?"critical":"loop"); }
