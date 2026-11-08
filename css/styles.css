@@ -563,12 +563,15 @@ body.dragging #inv {
     padding: 0
 }
 
+/* FIX: show the whole photo (contain) instead of cropping it (cover) */
 .cabin-photo,
 .nasm-photo {
     display: block;
     width: 100%;
-    max-height: 200px;
-    object-fit: cover;
+    height: auto;
+    max-width: 100%;
+    max-height: min(200px, 32vh);
+    object-fit: contain;
     object-position: center;
     border-radius: 10px;
     background: #0a0e16;
@@ -598,15 +601,17 @@ body.dragging #inv {
 }
 
 /* Gallery under the compare boxes – remaining NASM photos */
+/* FIX: columns adapt to the screen width; images keep their ratio, no cropping */
 .photo-gallery {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 8px;
     margin: 10px 0 4px
 }
 
 .photo-gallery figure {
     margin: 0;
+    min-width: 0;
     background: #0b1220;
     border: 1px solid var(--ln);
     border-radius: 10px;
@@ -616,8 +621,10 @@ body.dragging #inv {
 .photo-gallery img {
     display: block;
     width: 100%;
-    height: 110px;
-    object-fit: cover;
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
     object-position: center;
     background: #0a0e16
 }
@@ -629,17 +636,21 @@ body.dragging #inv {
     text-align: center
 }
 
+/* FIX: on phones keep 2 columns (shorter page) instead of 1 tall column */
 @media(max-width:600px) {
     .photo-gallery {
-        grid-template-columns: 1fr
-    }
-
-    .photo-gallery img {
-        height: 140px
+        grid-template-columns: repeat(2, 1fr)
     }
 
     .cabin-photo {
-        max-height: 180px
+        max-height: min(180px, 28vh)
+    }
+}
+
+/* FIX: very small phones -> single column */
+@media(max-width:340px) {
+    .photo-gallery {
+        grid-template-columns: 1fr
     }
 }
 
@@ -695,6 +706,8 @@ body.dragging #inv {
     box-shadow: 0 0 0 2px #ffb02055
 }
 
+/* FIX: dvh = real visible height on mobile browsers (vh kept as fallback);
+   scrolling inside the panel no longer scrolls the game behind it */
 .panel {
     background: var(--pn);
     border: 1px solid var(--ln);
@@ -702,31 +715,44 @@ body.dragging #inv {
     padding: 10px;
     margin-top: 6px;
     max-height: 42vh;
-    overflow: auto
+    max-height: 42dvh;
+    overflow: auto;
+    overscroll-behavior: contain
 }
 
+/* FIX: header (title + ✕) stays pinned at the top while the photos scroll,
+   so the ✕ is always visible and tappable */
 .panel-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 8px;
-    gap: 8px
+    margin: -10px -10px 8px;
+    padding: 10px;
+    gap: 8px;
+    position: sticky;
+    top: -10px;
+    z-index: 3;
+    background: #111827;
+    border-radius: 14px 14px 0 0
 }
 
 .panel-x {
-    min-width: 40px;
-    min-height: 40px;
-    padding: .25rem
+    min-width: 44px;
+    min-height: 44px;
+    padding: .25rem;
+    flex-shrink: 0
 }
 
+/* FIX: columns adapt to width; images keep their ratio (no crop, no stretch) */
 .folder-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: 8px
 }
 
 .folder-grid figure {
     margin: 0;
+    min-width: 0;
     background: #0b1220;
     border: 1px solid var(--ln);
     border-radius: 10px;
@@ -736,8 +762,11 @@ body.dragging #inv {
 .folder-grid img {
     display: block;
     width: 100%;
-    height: 100px;
-    object-fit: cover
+    max-width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: contain;
+    background: #0a0e16
 }
 
 .folder-grid figcaption {
@@ -747,16 +776,42 @@ body.dragging #inv {
     text-align: center
 }
 
+/* FIX: phones keep 2 columns so the panel stays short and the cabin stays visible */
 @media(max-width:600px) {
     .folder-grid {
-        grid-template-columns: 1fr
-    }
-
-    .folder-grid img {
-        height: 120px
+        grid-template-columns: repeat(2, 1fr)
     }
 
     .tool-btn span:not(.tool-ic) {
         font-size: .85rem
+    }
+}
+
+@media(max-width:340px) {
+    .folder-grid {
+        grid-template-columns: 1fr
+    }
+}
+
+/* FIX: phone in landscape (very short screen) – smaller photos, taller panel share */
+@media(max-height:500px) {
+    .panel {
+        max-height: 55vh;
+        max-height: 55dvh
+    }
+
+    .folder-grid,
+    .photo-gallery {
+        grid-template-columns: repeat(4, 1fr)
+    }
+
+    .folder-grid img,
+    .photo-gallery img {
+        aspect-ratio: 16 / 10
+    }
+
+    .cabin-photo,
+    .nasm-photo {
+        max-height: 110px
     }
 }
