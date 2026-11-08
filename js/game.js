@@ -805,8 +805,10 @@ function endRound(win){
       bullets.appendChild(li);
     });
   }
-  const photo=$("nasmPhoto");
-  if(photo) photo.alt=t("nasmCaption");
+  const cabin=$("cabinPhoto");
+  if(cabin) cabin.alt=t("nasmCaption");
+  const cap=$("cabinCaption");
+  if(cap) cap.textContent=t("cabinCaption");
 
   const tb=$("eB"); tb.textContent="";
   G.results.slice(-12).forEach(r=>{
@@ -940,7 +942,11 @@ function init(){
       if(!G.teams.length) G.teams=[G.nickname||"Player"];
     } else G.teams=[G.nickname||"Player"];
     G.ti=0; G.results=[];
-    audioInit(); setVol(); startIntro();
+    // User gesture: unlock WebAudio + HTMLAudio so intro radio / breathing can play
+    audioInit();
+    if(AC) AC.resume().catch(()=>{});
+    setVol();
+    startIntro();
   };
 
   $("bPlace").onclick=attempt;

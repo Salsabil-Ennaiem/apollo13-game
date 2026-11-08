@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <title>Apollo 13: Fix the Air</title>
-<link rel="stylesheet" href="css/styles.css?v=1.2">
+<link rel="stylesheet" href="css/styles.css?v=2.0">
 </head>
 <body>
 <canvas id="cv" tabindex="0" aria-label="3D cabin"></canvas>
@@ -149,10 +149,27 @@
       </div>
       <div class="box">
         <h3 id="tRealSolution">Historical solution</h3>
-        <img id="nasmPhoto" src="img/nasm-side.jpg" alt="Smithsonian NASM Apollo 13 CO2 adapter" class="nasm-photo">
+        <figure class="hist-main">
+          <img id="cabinPhoto" src="img/cabin-install.jpg" alt="Apollo 13 mailbox adapter installed in the Lunar Module" class="cabin-photo">
+          <figcaption id="cabinCaption" class="mu">Installed in the LM cabin</figcaption>
+        </figure>
         <p id="tRealSteps" class="mu"></p>
         <ul id="debriefBullets" class="debrief"></ul>
       </div>
+    </div>
+    <div class="photo-gallery" id="photoGallery" aria-label="Historical adapter photos">
+      <figure>
+        <img src="img/nasm-side.jpg" alt="NASM side view of the CO2 adapter" loading="lazy">
+        <figcaption>Side view</figcaption>
+      </figure>
+      <figure>
+        <img src="img/nasm-hose.jpg" alt="NASM hose connection on the adapter" loading="lazy">
+        <figcaption>Hose path</figcaption>
+      </figure>
+      <figure>
+        <img src="img/nasm-joint.jpg" alt="NASM close-up of taped joint" loading="lazy">
+        <figcaption>Taped joint</figcaption>
+      </figure>
     </div>
     <div id="rankBox" class="hide" style="margin:12px 0;padding:10px;background:#0b1220;border-radius:10px;border:1px solid var(--ln)">
       <p style="margin:0 0 6px"><b id="tRanks">Ranks</b></p>
@@ -181,10 +198,10 @@
   </div>
 </div>
 
-<script src="config.js?v=1.2"></script>
-<script src="js/i18n.js?v=1.2"></script>
+<script src="config.js?v=2.0"></script>
+<script src="js/i18n.js?v=2.0"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script type="module" src="js/game.js?v=1.2"></script>
+<script type="module" src="js/game.js?v=2.0"></script>
 </body>
 </html>

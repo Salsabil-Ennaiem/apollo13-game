@@ -136,7 +136,8 @@ window.A13_I18N = {
     // Phase 3: Compare debrief
     debriefProblem: "Problem: 3 crew in a 2-person cabin; square CM canisters would not fit the round LM ports.",
     debriefSolution: "Solution: Ground engineers improvised a sealed adapter from flight-plan covers, an LCG bag, a suit hose, and duct tape — the “mailbox”.",
-    nasmCaption: "Smithsonian NASM A19760747000 — the real adapter."
+    nasmCaption: "Smithsonian NASM A19760747000 — the real adapter.",
+    cabinCaption: "Installed in the LM cabin (historical photo)."
   },
 
   fr: {
@@ -264,7 +265,8 @@ window.A13_I18N = {
 
     debriefProblem: "Problème : 3 astronautes dans une cabine pour 2 ; les cartouches carrées du CM ne rentraient pas dans les orifices ronds du LM.",
     debriefSolution: "Solution : les ingénieurs au sol ont improvisé un adaptateur étanche avec des couvertures de plan de vol, un sac LCG, un tuyau de combinaison et du ruban adhésif — le « mailbox ».",
-    nasmCaption: "Smithsonian NASM A19760747000 — le vrai adaptateur."
+    nasmCaption: "Smithsonian NASM A19760747000 — le vrai adaptateur.",
+    cabinCaption: "Installé dans la cabine du LM (photo historique)."
   }
 };
 
