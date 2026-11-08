@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data: blob:; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
+<title>Apollo 13: Fix the Air</title>
+<style>
+:root{--bg:#070a12;--pn:#111827ee;--tx:#eef2f8;--mu:#a7b1c2;--ac:#ffb020;--ok:#3ddc97;--bd:#ff4d4f;--ln:#2b364a}
+*{box-sizing:border-box}html,body{height:100%;margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;overflow:hidden}
+#cv{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none;transition:filter .4s}
+#cv:focus-visible{outline:3px solid var(--ac);outline-offset:-3px}
+#vig{position:fixed;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse at center,transparent 35%,#000 105%);transition:opacity .5s}
+#red{position:fixed;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 90px 20px #ff1f1f}
+#red.on{opacity:.45;animation:pl 1.4s ease-in-out infinite}#red.st{opacity:.35}
+@keyframes pl{50%{opacity:.12}}
+button,select,input{font:inherit;color:var(--tx)}
+button{min-height:44px;min-width:44px;padding:.5rem .9rem;border:1px solid var(--ln);border-radius:10px;background:#1b2536;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--ac)}button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+button.pri{background:var(--ac);color:#111;font-weight:700;border-color:var(--ac)}
+button[aria-pressed=true]{border-color:var(--ac);background:#3a2b08;box-shadow:0 0 0 2px var(--ac)}
+.hide{display:none!important}
+#hud{position:fixed;inset:0;pointer-events:none;padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))}
+#hud>*{pointer-events:auto}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:8px 10px}
+.bar b{font-variant-numeric:tabular-nums}
+#tm{font-size:1.5rem}
+.meter{flex:1;min-width:150px}.track{height:14px;border-radius:7px;background:#222c3d;overflow:hidden;border:1px solid var(--ln)}
+#fill{height:100%;width:15%;background:var(--ok);transition:width .3s,background .3s}
+.side{position:absolute;left:8px;top:calc(max(8px,env(safe-area-inset-top)) + 110px);width:min(290px,60vw);background:var(--pn);border:1px solid var(--ln);border-radius:12px;padding:6px 10px;max-height:40vh;overflow:auto;font-size:.9rem}
+.side ol{margin:.3rem 0;padding-left:1.3rem}.side li.done{color:var(--ok);text-decoration:line-through}.side li.now{color:var(--ac);font-weight:700}
+.side summary{cursor:pointer;min-height:32px}
+.bot{position:absolute;left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:8px}
+#sub{align-self:center;max-width:min(680px,100%);text-align:center;background:#000c;border:1px solid var(--ln);border-radius:10px;padding:6px 12px;min-height:34px}
+#inv{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+#inv button{flex:0 0 auto;text-align:left;line-height:1.2}#inv small{display:block;color:var(--mu)}
+#ban{position:absolute;left:50%;top:calc(max(8px,env(safe-area-inset-top)) + 70px);transform:translateX(-50%);background:var(--bd);color:#fff;font-weight:800;padding:6px 16px;border-radius:8px;letter-spacing:.05em}
+.ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#05070dd9;padding:12px;overflow:auto;z-index:5}
+.card{width:min(640px,100%);max-height:100%;overflow:auto;background:#101827;border:1px solid var(--ln);border-radius:16px;padding:20px}
+h1{margin:.2rem 0;font-size:1.7rem}h2{margin:.2rem 0}.mu{color:var(--mu)}
+.row{display:flex;flex-wrap:wrap;gap:12px;margin:.6rem 0}.row label{display:flex;flex-direction:column;gap:4px;flex:1;min-width:160px}
+input[type=text],select{background:#0b1220;border:1px solid var(--ln);border-radius:8px;padding:8px;min-height:44px}
+.steps{display:flex;gap:8px;flex-wrap:wrap}.steps div{flex:1;min-width:150px;background:#0b1220;border:1px solid var(--ln);border-radius:10px;padding:8px;font-size:.9rem}
+.warn{border-left:4px solid var(--ac);padding:4px 10px;background:#2a1f06;border-radius:6px;font-size:.9rem}
+table{width:100%;border-collapse:collapse}td,th{padding:4px 6px;border-bottom:1px solid var(--ln);text-align:left}
+.err{color:var(--bd);font-size:.9rem;min-height:1.2em}
+@media(max-width:600px){.side{top:auto;bottom:150px;max-height:25vh}}
+@media(prefers-reduced-motion:reduce){#red.on{animation:none;opacity:.35}}
+</style>
+</head>
+<body>
+<canvas id="cv" tabindex="0" aria-label="3D cabin view. Arrow keys rotate, plus and minus zoom, number keys select items, Enter places the selected item."></canvas>
+<div id="vig"></div><div id="red"></div>
+
+<div id="hud" class="hide">
+ <div class="bar">
+  <span>Player: <b id="tn">-</b></span><span>⏱ <b id="tm">5:00</b></span>
+  <div class="meter"><div>CO₂ <b id="cp">15%</b> · <b id="cs">SAFE</b></div>
+   <div class="track" role="progressbar" aria-label="CO2 level" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15"><div id="fill"></div></div></div>
+  <button id="bHint" title="Hint (costs 15 s)">💡 Hint <span id="hl">3</span></button>
+  <button id="bPause" aria-label="Pause">⏸</button><button id="bView" aria-label="Reset view">🎯</button>
+  <button id="bMute" aria-pressed="false" aria-label="Mute sound">🔊</button><button id="bFs" aria-label="Fullscreen">⛶</button>
+ </div>
+ <div id="ban" class="hide" role="alert">⚠ CO₂ CRITICAL</div>
+ <details class="side" open><summary>Mission checklist</summary><ol id="chk"></ol>
+  <details><summary>Real sizes (Smithsonian / approx.)</summary><div id="facts" class="mu"></div></details></details>
+ <div class="bot"><div id="sub" role="status" aria-live="polite"></div>
+  <div style="display:flex;gap:8px;align-items:stretch"><div id="inv" aria-label="Inventory" style="flex:1"></div><button id="bPlace" class="pri">Place ⏎</button></div></div>
+</div>
+
+<!-- Nickname / entry screen -->
+<div id="nick" class="ov">
+ <div class="card">
+  <h1>🚀 Apollo 13: Fix the Air</h1>
+  <p>Enter a nickname to appear on the public leaderboard. No email or real name required.</p>
+  <div class="row">
+   <label>Nickname (3–16 chars, letters/numbers/spaces/_ )
+    <input id="sNick" type="text" maxlength="16" autocomplete="off" placeholder="e.g. MissionControl">
+   </label>
+  </div>
+  <div class="row">
+   <label>Class code (optional, 4–8 letters/digits – private class board)
+    <input id="sClass" type="text" maxlength="8" autocomplete="off" placeholder="e.g. ROOM12">
+   </label>
+  </div>
+  <p id="nickErr" class="err" role="alert"></p>
+  <button id="bNick" class="pri" style="width:100%">Continue</button>
+  <p class="mu" style="margin-top:12px;font-size:.85rem">By continuing you agree that your nickname and score may be shown publicly. Data can be deleted on request.</p>
+ </div>
+</div>
+
+<!-- Start / settings screen -->
+<div id="start" class="ov hide">
+ <div class="card">
+  <h1>🚀 Apollo 13: Fix the Air</h1>
+  <p>An explosion crippled the spacecraft and the crew moved into the Lunar Module as a lifeboat. But the Command Module's <b>square</b> CO₂ canisters don't fit the Lunar Module's <b>round</b> receptacle. CO₂ is rising. Build the fix using only what is on board.</p>
+  <div class="steps">
+   <div><b>1. Look</b><br>Drag / swipe to rotate, scroll or pinch to zoom.</div>
+   <div><b>2. Choose</b><br>Tap an item in the inventory bar.</div>
+   <div><b>3. Place</b><br>Tap the glowing marker or "Place".</div>
+  </div>
+  <div class="row">
+   <label>Time limit
+    <select id="sDur">
+     <option value="180">3 min</option>
+     <option value="300" selected>5 min</option>
+     <option value="480">8 min</option>
+    </select>
+   </label>
+   <label>Teams (local only, comma separated, max 4 – not ranked)
+    <input id="sTeams" type="text" maxlength="90" value="" autocomplete="off" placeholder="Leave empty for ranked solo">
+   </label>
+  </div>
+  <div class="row">
+   <label>Volume <input id="sVol" type="range" min="0" max="1" step=".05" value=".6"></label>
+   <label style="flex-direction:row;align-items:center"><input id="sRed" type="checkbox"> Reduced stress effects (no blur, flicker or sway)</label>
+  </div>
+  <p class="warn">Contains simulated stress: breathing sounds, alarms, blur and light flicker. Effects can be reduced above. No flashing over 2 times per second.</p>
+  <p class="mu">Playing as: <b id="dispNick">-</b> · <a href="leaderboard.html" target="_blank" rel="noopener">View leaderboard</a></p>
+  <button id="bStart" class="pri" style="width:100%">Start mission</button>
+ </div>
+</div>
+
+<div id="pause" class="ov hide"><div class="card"><h2>Paused</h2><p class="mu">Timer and CO₂ are stopped.</p><button id="bResume" class="pri">Resume</button></div></div>
+
+<div id="end" class="ov hide">
+ <div class="card">
+  <h2 id="eT"></h2>
+  <p id="eS"></p>
+  <p class="mu" id="eF"></p>
+  <div id="rankBox" class="hide" style="margin:12px 0;padding:10px;background:#0b1220;border-radius:10px;border:1px solid var(--ln)">
+   <p style="margin:0 0 6px"><b>Your ranks</b></p>
+   <p id="rankText" class="mu" style="margin:0"></p>
+  </div>
+  <p id="submitStatus" class="mu" role="status"></p>
+  <table><thead><tr><th>Team / Player</th><th>Result</th><th>Score</th></tr></thead><tbody id="eB"></tbody></table>
+  <br>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+   <button id="bNext" class="pri"></button>
+   <button id="bRetrySubmit" class="hide">Retry submit</button>
+   <a href="leaderboard.html" target="_blank" rel="noopener" style="align-self:center;color:var(--ac)">Full leaderboard</a>
+  </div>
+ </div>
+</div>
+
+<div id="err" class="ov hide" role="alert"><div class="card"><h2>Something went wrong</h2><p id="eM"></p><p class="mu">Reload the page. WebGL must be enabled in your browser.</p></div></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script type="module">
+// ============================================================
+// HOW TO CUSTOMIZE
+// 1. Keys / URL  → edit config.js only
+// 2. Difficulty  → CFG object below
+// 3. Dimensions  → DIM object below (1 unit = 1 cm)
+// 4. Steps/items → ORDER, STEPS, ITEMS
+// ============================================================
+
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/+esm";
+
+const cfg = window.A13_CONFIG || {};
+const SUPABASE_URL = cfg.SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY || "";
+const GAME_VERSION = cfg.GAME_VERSION || "1.0";
+
+const sb = (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_PROJECT"))
+  ? null
+  : createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ===== GAME CONSTANTS ===== */
+const CFG = { start:15, hints:3, hintCost:15, mistakeCo2:3, stepCo2:8 };
+
+// Real dimensions (1 unit = 1 cm). Smithsonian NASM A19760747000 for canister + hose.
+const DIM = {
+  canister: { w:18.4, h:22.9, d:18.4, src:"Smithsonian NASM A19760747000 (mock-up main body 18.4×18.4×22.9 cm)" },
+  port:     { r:7.5, src:"Approx. LM round port (TODO verify exact diameter)" },
+  cover:    { w:21, h:28, src:"Flight plan cover / cue card, cardstock (approx. 8.5×11 in sheet cut down)" },
+  hose:     { len:132.1, r:1.9, src:"Smithsonian NASM A19760747000 hose 132.1 × 3.8 cm" },
+  tape:     { w:5, src:"Gray duct tape roll width (approx.)" },
+  bag:      { w:18, h:26, src:"LCG bag (approx.)" }
+};
+
+const ORDER = ["canister","cover","bag","hose","tape"];
+const STEPS = {
+  canister: ["Mount the LiOH canister","Start with the part that absorbs CO₂."],
+  cover:    ["Shape the adapter from the flight-plan cover","Stiff cardstock can wrap around the square canister."],
+  bag:      ["Add the plastic LCG bag sleeve","Something flexible and airtight is needed around the adapter."],
+  hose:     ["Connect the hose to the round port","Air must travel from the port through the canister."],
+  tape:     ["Seal everything with duct tape","Leaks ruin it. Tape the joints."]
+};
+
+const ITEMS = [
+  {id:"canister", ic:"🧴", n:"LiOH canister", d:"18.4×18.4×22.9 cm"},
+  {id:"sock",     ic:"🧦", n:"Sock", d:"30 cm"},
+  {id:"cover",    ic:"📘", n:"Flight plan cover", d:"21×28 cm"},
+  {id:"pen",      ic:"🖊️", n:"Pen", d:"14 cm"},
+  {id:"bag",      ic:"🛍️", n:"LCG bag", d:"18×26 cm"},
+  {id:"hose",     ic:"🧵", n:"Suit hose", d:"132 cm"},
+  {id:"helmet",   ic:"🪖", n:"Helmet", d:"30 cm"},
+  {id:"tape",     ic:"🩹", n:"Duct tape", d:"5 cm wide"},
+  {id:"check",    ic:"📋", n:"Checklist", d:"20×28 cm"}
+];
+
+const SLOT = {
+  canister:[-30,0,16],
+  cover:[-30,0,16],
+  bag:[-16,-8,14],
+  hose:[-14,12,14],
+  tape:[-17.5,0,16]
+};
+
+/* ===== helpers ===== */
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => Math.min(b, Math.max(a,v));
+const G = {
+  state:"nick", step:0, co2:15, time:300, dur:300, hints:0, mist:0,
+  sel:null, solved:false, fired:{}, teams:["Player"], ti:0, results:[],
+  used:{}, nickname:"", classCode:null, authUid:null,
+  log:[], startTs:0, lastSubmit:null
+};
+let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let muted = false, vol = .6;
+
+function fail(e){
+  try{ $("eM").textContent = String(e && e.message || e).slice(0,200); $("err").classList.remove("hide"); }
+  catch(_){}
+}
+window.addEventListener("error", e => fail(e.error || e.message));
+
+/* ===== Nickname validation (client) ===== */
+const BAD = ["fuck","shit","asshole","bitch","cunt","dick","nigger","nigga","faggot","retard","whore","slut","piss","crap","damn","bastard"];
+function cleanNick(raw){
+  if(typeof raw !== "string") return null;
+  const n = raw.trim().replace(/\s+/g," ");
+  if(n.length < 3 || n.length > 16) return null;
+  if(!/^[A-Za-z0-9 _]+$/.test(n)) return null;
+  const lower = n.toLowerCase();
+  for(const w of BAD) if(lower.includes(w)) return null;
+  return n;
+}
+function cleanClass(raw){
+  if(!raw) return null;
+  const c = String(raw).trim().toUpperCase();
+  if(c.length < 4 || c.length > 8) return null;
+  if(!/^[A-Z0-9]+$/.test(c)) return null;
+  return c;
+}
+
+/* ===== audio (generated) ===== */
+let AC, master, nbuf, tBreath, tBeep;
+function audioInit(){
+  if(AC || !(window.AudioContext || window.webkitAudioContext)) return;
+  AC = new (window.AudioContext || window.webkitAudioContext)();
+  master = AC.createGain();
+  master.gain.value = muted ? 0 : vol;
+  master.connect(AC.destination);
+  nbuf = AC.createBuffer(1, AC.sampleRate*2, AC.sampleRate);
+  const d = nbuf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  [55,110.5].forEach((f,i)=>{
+    const o=AC.createOscillator(), g=AC.createGain();
+    o.frequency.value=f; g.gain.value=i?.008:.02;
+    o.connect(g); g.connect(master); o.start();
+  });
+  const s=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+  s.buffer=nbuf; s.loop=true; f.type="lowpass"; f.frequency.value=300; g.gain.value=.03;
+  s.connect(f); f.connect(g); g.connect(master); s.start();
+}
+function setVol(){ if(master) master.gain.value = muted ? 0 : vol; }
+function breath(){
+  if(!AC || G.state!=="play") return;
+  const l=G.co2/100, dur=2.8-1.7*l, t=AC.currentTime;
+  const s=AC.createBufferSource(), f=AC.createBiquadFilter(), g=AC.createGain();
+  s.buffer=nbuf; f.type="bandpass"; f.frequency.value=500+900*l; f.Q.value=.8;
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(.15+.45*l, t+dur*.35);
+  g.gain.linearRampToValueAtTime(0, t+dur*.8);
+  s.connect(f); f.connect(g); g.connect(master);
+  s.start(t); s.stop(t+dur);
+  tBreath = setTimeout(breath, dur*1000);
+}
+function beep(){
+  if(!AC || G.state!=="play") return;
+  let wait=1000;
+  if(G.co2>=50){
+    const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+    o.type="square"; o.frequency.value = G.co2>=75 ? 990 : 700;
+    g.gain.setValueAtTime(.05,t); g.gain.setValueAtTime(0,t+.12);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t+.15);
+    wait = G.co2>=75 ? 800 : 2000;
+  }
+  tBeep = setTimeout(beep, wait);
+}
+function loopsOn(){ loopsOff(); if(AC){ AC.resume(); breath(); beep(); } }
+function loopsOff(){ clearTimeout(tBreath); clearTimeout(tBeep); if(AC && G.state!=="play") AC.suspend(); }
+function say(t, speak){
+  $("sub").textContent = t;
+  if(speak && !muted && "speechSynthesis" in window){
+    try{
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(t);
+      u.rate=1.05; u.volume=vol; u.lang="en-US";
+      speechSynthesis.speak(u);
+    }catch(_){}
+  }
+}
+
+/* ===== 3D scene ===== */
+let renderer, scene, camera, controls, light, placed, marker, problem;
+const BASE = new THREE.Vector3(-12,0,10);
+const M = (c,o) => new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:.15},o||{}));
+
+function initScene(){
+  try{ renderer = new THREE.WebGLRenderer({canvas:$("cv"), antialias:true}); }
+  catch(e){ fail("WebGL is not supported on this device."); return false; }
+  renderer.setPixelRatio(Math.min(devicePixelRatio||1, 2));
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x05070d);
+  scene.fog = new THREE.Fog(0x05070d,140,300);
+  camera = new THREE.PerspectiveCamera(50,1,1,500);
+  camera.position.set(-12,15,95);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+  controls.target.copy(BASE);
+  controls.enableDamping = true;
+  controls.minDistance = 25;
+  controls.maxDistance = 160;
+  controls.maxPolarAngle = Math.PI*.85;
+  scene.add(new THREE.AmbientLight(0x8899bb,.5));
+  light = new THREE.PointLight(0xfff1d6,1,400);
+  light.position.set(-10,40,70);
+  scene.add(light);
+  const dl = new THREE.DirectionalLight(0x6688cc,.35);
+  dl.position.set(50,30,50);
+  scene.add(dl);
+  const wall = new THREE.Mesh(new THREE.PlaneGeometry(320,200), M(0x2a3140));
+  wall.position.set(-20,10,0); scene.add(wall);
+  const gh = new THREE.GridHelper(320,32,0x3a465c,0x252d3c);
+  gh.rotation.x = Math.PI/2; gh.position.set(-20,10,.2); scene.add(gh);
+  const fl = new THREE.Mesh(new THREE.PlaneGeometry(320,200), M(0x1b212c));
+  fl.rotation.x = -Math.PI/2; fl.position.set(-20,-14,90); scene.add(fl);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(DIM.port.r,1.4,12,40), M(0x9aa3b2,{metalness:.6}));
+  ring.position.z = .8; scene.add(ring);
+  const hole = new THREE.Mesh(new THREE.CircleGeometry(DIM.port.r,40), new THREE.MeshBasicMaterial({color:0x000000}));
+  hole.position.z = .4; scene.add(hole);
+  const bench = new THREE.Mesh(new THREE.BoxGeometry(70,2,40), M(0x3b4558));
+  bench.position.set(-26,-13.5,16); scene.add(bench);
+  const c = DIM.canister;
+  problem = new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d), new THREE.MeshBasicMaterial({color:0xff4d4f,wireframe:true}));
+  problem.position.set(0,0,9); scene.add(problem);
+  placed = new THREE.Group(); scene.add(placed);
+  marker = new THREE.Mesh(new THREE.SphereGeometry(3.5,16,16), new THREE.MeshBasicMaterial({color:0xffb020,transparent:true,opacity:.85}));
+  scene.add(marker);
+  resize();
+  return true;
+}
+function resize(){
+  if(!renderer) return;
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+}
+addEventListener("resize", resize);
+
+function build(id){
+  const c = DIM.canister, p = SLOT[id], g = new THREE.Group();
+  let m;
+  if(id==="canister"){
+    m = new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d), M(0x8d949e,{metalness:.7}));
+    g.add(m);
+    for(let i=-2;i<=2;i++){
+      const s = new THREE.Mesh(new THREE.BoxGeometry(c.w+.4,.8,c.d+.4), M(0x4b5260));
+      s.position.y = i*4.5; g.add(s);
+    }
+  }
+  if(id==="cover"){
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(c.w+3,14,c.d+3), M(0xe8d9b0,{transparent:true,opacity:.92,roughness:.9})));
+  }
+  if(id==="bag"){
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(DIM.bag.w,1.5,DIM.bag.h), M(0x9fc4e8,{transparent:true,opacity:.6})));
+  }
+  if(id==="hose"){
+    const cu = new THREE.CatmullRomCurve3([
+      new THREE.Vector3(-30,12,16),
+      new THREE.Vector3(-22,24,20),
+      new THREE.Vector3(-8,12,12),
+      new THREE.Vector3(0,0,3)
+    ]);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(cu,40,DIM.hose.r,10), M(0xf2f2f2)));
+    g.position.set(0,0,0); placed.add(g); return;
+  }
+  if(id==="tape"){
+    [-8,0,8].forEach(y=>{
+      const t = new THREE.Mesh(new THREE.TorusGeometry(12.6,.9,8,32), M(0x7a7f86));
+      t.rotation.x = Math.PI/2; t.position.set(-30,y,16); placed.add(t);
+    });
+    return;
+  }
+  g.position.set(p[0],p[1],p[2]);
+  placed.add(g);
+}
+function clearPlaced(){
+  placed.traverse(o=>{
+    if(o.geometry) o.geometry.dispose();
+    if(o.material) o.material.dispose();
+  });
+  placed.clear();
+}
+function orbit(dt,dp){
+  const o = camera.position.clone().sub(controls.target);
+  const s = new THREE.Spherical().setFromVector3(o);
+  s.theta += dt; s.phi = clamp(s.phi+dp,.2,Math.PI*.85);
+  o.setFromSpherical(s);
+  camera.position.copy(controls.target).add(o);
+  controls.update();
+}
+function zoom(f){
+  const o = camera.position.clone().sub(controls.target);
+  o.setLength(clamp(o.length()*f,25,160));
+  camera.position.copy(controls.target).add(o);
+  controls.update();
+}
+function resetView(){
+  camera.position.set(-12,15,95);
+  controls.target.copy(BASE);
+  controls.update();
+}
+
+/* ===== UI ===== */
+function buildUI(){
+  const inv = $("inv");
+  ITEMS.forEach((it,i)=>{
+    const b = document.createElement("button");
+    b.dataset.id = it.id;
+    b.setAttribute("aria-pressed","false");
+    b.textContent = (i+1)+". "+it.ic+" "+it.n;
+    const s = document.createElement("small");
+    s.textContent = it.d;
+    b.appendChild(s);
+    b.onclick = () => select(it.id);
+    inv.appendChild(b);
+  });
+  const ol = $("chk");
+  ORDER.forEach(k=>{
+    const li = document.createElement("li");
+    li.dataset.k = k;
+    li.textContent = STEPS[k][0];
+    ol.appendChild(li);
+  });
+  Object.keys(DIM).forEach(k=>{
+    const p = document.createElement("div");
+    const d = DIM[k];
+    p.textContent = k+": "+(d.w ? d.w+"×"+(d.h||d.d)+" cm" : d.r ? "Ø"+d.r*2+" cm" : d.len+" cm")+" ("+d.src+")";
+    $("facts").appendChild(p);
+  });
+}
+function select(id){
+  if(G.state!=="play" || G.used[id]) return;
+  G.sel = id;
+  document.querySelectorAll("#inv button").forEach(b =>
+    b.setAttribute("aria-pressed", String(b.dataset.id===id)));
+  const it = ITEMS.find(x=>x.id===id);
+  say("Selected: "+it.n+". Tap the glowing marker or press Place.");
+}
+function refreshChecklist(){
+  document.querySelectorAll("#chk li").forEach(li=>{
+    const i = ORDER.indexOf(li.dataset.k);
+    li.className = i < G.step ? "done" : i===G.step ? "now" : "";
+  });
+}
+
+/* ===== game logic ===== */
+function setState(s){
+  G.state = s;
+  $("nick").classList.toggle("hide", s!=="nick");
+  $("start").classList.toggle("hide", s!=="menu");
+  $("pause").classList.toggle("hide", s!=="pause");
+  $("end").classList.toggle("hide", s!=="won" && s!=="lost");
+  $("hud").classList.toggle("hide", s==="nick" || s==="menu" || s==="won" || s==="lost");
+  if(s==="play") loopsOn(); else loopsOff();
+}
+
+function startRound(){
+  Object.assign(G, {
+    step:0, co2:CFG.start, time:G.dur, hints:0, mist:0,
+    sel:null, solved:false, fired:{}, used:{}, log:[], startTs: performance.now()
+  });
+  clearPlaced();
+  problem.visible = true;
+  marker.visible = true;
+  resetView();
+  document.querySelectorAll("#inv button").forEach(b=>{
+    b.disabled = false;
+    b.setAttribute("aria-pressed","false");
+  });
+  $("tn").textContent = G.teams[G.ti];
+  $("hl").textContent = CFG.hints;
+  $("bHint").disabled = false;
+  refreshChecklist();
+  setState("play");
+  say("Mission start. CO2 is rising. Build the adapter.", true);
+}
+
+function attempt(){
+  if(G.state!=="play" || G.solved) return;
+  if(!G.sel){ say("Select an item first."); return; }
+  const need = ORDER[G.step];
+  if(G.sel === need){
+    build(need);
+    G.used[need] = true;
+    G.log.push({ step:need, t: Math.round(performance.now() - G.startTs) });
+    G.step++;
+    G.co2 = Math.max(5, G.co2 - CFG.stepCo2);
+    document.querySelector('#inv button[data-id="'+need+'"]').disabled = true;
+    G.sel = null;
+    document.querySelectorAll("#inv button").forEach(b => b.setAttribute("aria-pressed","false"));
+    if(need==="canister") problem.visible = false;
+    refreshChecklist();
+    if(G.step >= ORDER.length){
+      G.solved = true;
+      marker.visible = false;
+      say("Adapter complete. CO2 is dropping.", true);
+    } else {
+      say("Good. "+STEPS[need][0]+" done. Next: "+STEPS[ORDER[G.step]][0]+".");
+    }
+  } else {
+    G.mist++;
+    G.co2 = Math.min(100, G.co2 + CFG.mistakeCo2);
+    const real = ORDER.includes(G.sel);
+    say(real ? "Right idea, wrong moment. Think about the order." : "That will not help with CO2.");
+  }
+}
+
+function hint(){
+  if(G.state!=="play" || G.hints>=CFG.hints || G.solved) return;
+  G.hints++;
+  G.time = Math.max(0, G.time - CFG.hintCost);
+  $("hl").textContent = CFG.hints - G.hints;
+  say("Hint (−"+CFG.hintCost+" s): "+STEPS[ORDER[G.step]][1]);
+  if(G.hints >= CFG.hints) $("bHint").disabled = true;
+}
+
+/* ===== Score submission ===== */
+async function submitScore(win, score){
+  if(!sb || !win){
+    $("submitStatus").textContent = win ? "Online scoring not configured." : "";
+    return null;
+  }
+  // Only ranked solo runs (no local team mode)
+  if(G.teams.length > 1 || (G.teams[0] !== G.nickname && G.teams[0] !== "Player")){
+    $("submitStatus").textContent = "Team mode is local-only (not ranked).";
+    return null;
+  }
+
+  $("submitStatus").textContent = "Submitting score…";
+  $("bRetrySubmit").classList.add("hide");
+
+  const payload = {
+    nickname: G.nickname,
+    class_code: G.classCode,
+    duration_setting: G.dur,
+    steps_log: G.log,
+    hints: G.hints,
+    mistakes: G.mist,
+    time_left: G.time,
+    game_version: GAME_VERSION,
+    auth_uid: G.authUid
+  };
+
+  try {
+    const { data, error } = await sb.functions.invoke("submit-score", { body: payload });
+    if(error) throw error;
+    if(data && data.error) throw new Error(data.error);
+
+    G.lastSubmit = { payload, result: data };
+    $("submitStatus").textContent = "Score submitted ✓";
+    if(data.ranks){
+      $("rankBox").classList.remove("hide");
+      $("rankText").textContent =
+        "Today #"+data.ranks.today+" · This week #"+data.ranks.week+" · All-time #"+data.ranks.all_time;
+    }
+    return data;
+  } catch(e){
+    console.error(e);
+    $("submitStatus").textContent = "Could not submit (offline or server error). You can retry.";
+    $("bRetrySubmit").classList.remove("hide");
+    G.lastSubmit = { payload, result: null };
+    return null;
+  }
+}
+
+function endRound(win){
+  const score = win ? Math.max(0, Math.round(1000 + G.time*3 - G.hints*100 - G.mist*25)) : 0;
+  G.results.push({ n: G.teams[G.ti], r: win?"Success":"Failed", s:score });
+  setState(win ? "won" : "lost");
+  $("eT").textContent = win ? "✅ Mission success" : "❌ Mission failed";
+  $("eS").textContent = win
+    ? "Air is safe again. Score "+score+" · time left "+Math.round(G.time)+" s · hints "+G.hints+" · mistakes "+G.mist+"."
+    : "CO₂ reached a dangerous level.";
+  $("eF").textContent = 'Real history: ground engineers in Houston designed and tested the "mail box" fix before talking the crew through building it. The Smithsonian mock-up measures 18.4×18.4×22.9 cm.';
+  $("rankBox").classList.add("hide");
+  $("submitStatus").textContent = "";
+  $("bRetrySubmit").classList.add("hide");
+
+  const tb = $("eB");
+  tb.textContent = "";
+  G.results.slice(-12).forEach(r=>{
+    const tr = document.createElement("tr");
+    [r.n, r.r, String(r.s)].forEach(v=>{
+      const td = document.createElement("td");
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    tb.appendChild(tr);
+  });
+
+  const nx = (G.ti+1) % G.teams.length;
+  $("bNext").textContent = G.teams.length > 1 ? "Next: "+G.teams[nx] : "Play again";
+  $("bNext").onclick = () => { G.ti = nx; startRound(); };
+  $("bNext").focus();
+
+  // Submit only on win for ranked play
+  if(win) submitScore(true, score);
+}
+
+function pause(){ if(G.state==="play"){ setState("pause"); $("bResume").focus(); } }
+function resume(){ if(G.state==="pause") setState("play"); }
+
+/* ===== main loop ===== */
+let last = performance.now(), nextFl = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  const dt = Math.min(.1, (now-last)/1000);
+  last = now;
+  try{
+    if(G.state==="play"){
+      if(G.solved){
+        G.co2 = Math.max(0, G.co2 - 25*dt);
+        if(G.co2 <= CFG.start*.8) return endRound(true);
+      } else {
+        G.time -= dt;
+        G.co2 = Math.min(100, G.co2 + ((100-CFG.start)/G.dur)*.95*(1-.15*G.step)*dt);
+        if(G.time<=0 || G.co2>=100){
+          G.time = Math.max(0, G.time);
+          return endRound(false);
+        }
+      }
+      [[50,"CO2 level rising."],[75,"Warning. CO2 critical."],[90,"Crew, check the adapter now."]]
+        .forEach(a=>{ if(G.co2>=a[0] && !G.fired[a[0]]){ G.fired[a[0]]=1; say(a[1],true); } });
+    }
+    const co = G.co2, l = co/100, m = Math.max(0, Math.ceil(G.time));
+    $("tm").textContent = Math.floor(m/60)+":"+String(m%60).padStart(2,"0");
+    $("cp").textContent = Math.round(co)+"%";
+    $("cs").textContent = co<40?"SAFE":co<75?"RISING":"CRITICAL";
+    $("fill").style.width = co+"%";
+    $("fill").style.background = co<40?"#3ddc97":co<75?"#ffb020":"#ff4d4f";
+    $("cp").parentNode.parentNode.querySelector("[role=progressbar]")
+      .setAttribute("aria-valuenow", Math.round(co));
+    const crit = co>=75 && G.state==="play";
+    $("ban").classList.toggle("hide", !crit);
+    const ef = !reduced && G.state!=="menu" && G.state!=="nick";
+    $("cv").style.filter = ef && co>45 ? "blur("+(((co-45)/55)*6).toFixed(1)+"px)" : "none";
+    $("vig").style.opacity = ef ? clamp((co-35)/65,0,.9) : 0;
+    $("red").className = crit ? (reduced?"st":"on") : "";
+    if(ef && co>50 && G.state==="play"){
+      if(now > nextFl){ light.intensity = .55 + Math.random()*.45; nextFl = now+500+Math.random()*700; }
+    } else light.intensity = 1;
+    controls.target.y = BASE.y + (ef && G.state==="play" ? Math.sin(now/(1400-800*l))*.6*l : 0);
+    if(marker.visible && G.step < ORDER.length){
+      const p = SLOT[ORDER[G.step]];
+      marker.position.set(p[0], p[1], p[2]);
+      marker.scale.setScalar(1 + .15*Math.sin(now/300));
+    }
+    controls.update();
+    renderer.render(scene, camera);
+  }catch(e){ fail(e); }
+}
+
+/* ===== events ===== */
+async function initAuth(){
+  if(!sb) return;
+  try{
+    const { data, error } = await sb.auth.signInAnonymously();
+    if(!error && data?.user) G.authUid = data.user.id;
+  }catch(e){ console.warn("Anon auth failed", e); }
+}
+
+function init(){
+  if(!initScene()) return;
+  buildUI();
+  $("sRed").checked = reduced;
+
+  // Nickname screen
+  $("bNick").onclick = async () => {
+    const n = cleanNick($("sNick").value);
+    if(!n){
+      $("nickErr").textContent = "Invalid nickname (3–16 chars, letters/numbers/spaces/_ only, no banned words).";
+      return;
+    }
+    G.nickname = n;
+    G.classCode = cleanClass($("sClass").value);
+    try{ localStorage.setItem("a13_nick", n); }catch(_){}
+    $("dispNick").textContent = n + (G.classCode ? " · class "+G.classCode : "");
+    $("nickErr").textContent = "";
+    await initAuth();
+    setState("menu");
+  };
+
+  // Restore previous nickname if any
+  try{
+    const prev = localStorage.getItem("a13_nick");
+    if(prev) $("sNick").value = prev;
+  }catch(_){}
+
+  $("bStart").onclick = () => {
+    reduced = $("sRed").checked;
+    vol = +$("sVol").value;
+    G.dur = +$("sDur").value;
+    const teamStr = $("sTeams").value.trim();
+    if(teamStr){
+      G.teams = teamStr.split(",").map(s=>s.trim().slice(0,20)).filter(Boolean).slice(0,4);
+      if(!G.teams.length) G.teams = [G.nickname || "Player"];
+    } else {
+      G.teams = [G.nickname || "Player"];
+    }
+    G.ti = 0;
+    G.results = [];
+    audioInit();
+    setVol();
+    startRound();
+  };
+
+  $("bPlace").onclick = attempt;
+  $("bHint").onclick = hint;
+  $("bPause").onclick = pause;
+  $("bResume").onclick = resume;
+  $("bView").onclick = resetView;
+  $("bMute").onclick = () => {
+    muted = !muted;
+    $("bMute").textContent = muted ? "🔇" : "🔊";
+    $("bMute").setAttribute("aria-pressed", String(muted));
+    setVol();
+    if(muted && "speechSynthesis" in window) speechSynthesis.cancel();
+  };
+  $("bFs").onclick = () => {
+    try{ document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen(); }
+    catch(_){}
+  };
+  $("bRetrySubmit").onclick = () => {
+    if(G.lastSubmit && G.lastSubmit.payload){
+      submitScore(true, G.lastSubmit.payload.time_left); // re-use last
+    }
+  };
+
+  // Pointer place
+  const cv = $("cv"), ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
+  let down = null;
+  cv.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; });
+  cv.addEventListener("pointerup", e => {
+    if(!down || G.state!=="play" || !marker.visible) return;
+    if(Math.hypot(e.clientX-down[0], e.clientY-down[1]) > 6) return;
+    v2.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
+    ray.setFromCamera(v2, camera);
+    if(ray.intersectObject(marker).length) attempt();
+  });
+
+  addEventListener("keydown", e => {
+    const t = e.target.tagName;
+    if(t==="INPUT" || t==="SELECT") return;
+    if(G.state!=="play") return;
+    const k = e.key, s = .12;
+    if(k==="ArrowLeft") orbit(-s,0);
+    else if(k==="ArrowRight") orbit(s,0);
+    else if(k==="ArrowUp") orbit(0,-s);
+    else if(k==="ArrowDown") orbit(0,s);
+    else if(k==="+" || k==="=") zoom(.9);
+    else if(k==="-") zoom(1.1);
+    else if(k==="Enter" && t!=="BUTTON") attempt();
+    else if(k==="p" || k==="P") pause();
+    else if(/^[1-9]$/.test(k) && ITEMS[+k-1]) select(ITEMS[+k-1].id);
+    else return;
+    if(k.startsWith("Arrow")) e.preventDefault();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if(document.hidden) pause();
+  });
+
+  requestAnimationFrame(frame);
+}
+
+try{ init(); }catch(e){ fail(e); }
+</script>
+</body>
+</html>
