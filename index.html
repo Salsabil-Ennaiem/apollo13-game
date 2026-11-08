@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <title>Apollo 13: Fix the Air</title>
-<link rel="stylesheet" href="css/styles.css?v=2.0">
+<link rel="stylesheet" href="css/styles.css?v=2.1">
 </head>
 <body>
 <canvas id="cv" tabindex="0" aria-label="3D cabin"></canvas>
@@ -23,7 +23,9 @@
     <button id="bHint" title="Hint">💡 <span id="tHint">Hint</span> <span id="hl">3</span></button>
     <button id="bPause" aria-label="Pause">⏸</button>
     <button id="bView" aria-label="Reset view">🎯</button>
-    <button id="bMute" aria-pressed="false" aria-label="Mute">🔊</button>
+    <button id="bMute" aria-pressed="false" aria-label="Mute all" title="Mute all">🔊</button>
+    <button id="bMuteRadioHud" aria-pressed="false" aria-label="Mute radio" title="Radio">📻</button>
+    <button id="bMuteBreathHud" aria-pressed="false" aria-label="Mute breath" title="Breath">💨</button>
     <button id="bFs" aria-label="Fullscreen">⛶</button>
     <span class="lang-bar">
       <button type="button" id="langEN" aria-pressed="true">EN</button>
@@ -111,8 +113,22 @@
       <label id="tTeamsLabel">Teams<input id="sTeams" type="text" maxlength="90" value="" autocomplete="off"></label>
     </div>
     <div class="row">
-      <label id="tVolLabel">Volume <input id="sVol" type="range" min="0" max="1" step=".05" value=".6"></label>
+      <label id="tVolLabel">Master <input id="sVol" type="range" min="0" max="1" step=".05" value=".6"></label>
       <label style="flex-direction:row;align-items:center"><input id="sRed" type="checkbox"> <span id="tReduced">Reduced</span></label>
+    </div>
+    <div class="row audio-chans">
+      <label id="tVolRadioLabel">Radio (real Apollo 13)
+        <span class="chan-row">
+          <button type="button" id="bMuteRadio" aria-pressed="false" title="Mute radio">🔊</button>
+          <input id="sVolRadio" type="range" min="0" max="1" step=".05" value=".85">
+        </span>
+      </label>
+      <label id="tVolBreathLabel">Breathing
+        <span class="chan-row">
+          <button type="button" id="bMuteBreath" aria-pressed="false" title="Mute breathing">🔊</button>
+          <input id="sVolBreath" type="range" min="0" max="1" step=".05" value=".45">
+        </span>
+      </label>
     </div>
     <p id="tWarn" class="warn"></p>
     <p class="mu"><span id="tPlayingAs">Playing as:</span> <b id="dispNick">-</b> · <a id="tViewBoard" href="leaderboard.html" target="_blank" rel="noopener">Board</a></p>
@@ -198,10 +214,10 @@
   </div>
 </div>
 
-<script src="config.js?v=2.0"></script>
-<script src="js/i18n.js?v=2.0"></script>
+<script src="config.js?v=2.1"></script>
+<script src="js/i18n.js?v=2.1"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script type="module" src="js/game.js?v=2.0"></script>
+<script type="module" src="js/game.js?v=2.1"></script>
 </body>
 </html>

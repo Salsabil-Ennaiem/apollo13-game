@@ -178,7 +178,9 @@ window.applyLang = function applyLang(){
 
 /* ===== audio ===== */
 let AC, master, nbuf, pbuf, tBreath, tBeep;
-let breathLoopEl=null, breathCritEl=null, introRadioEl=null, breathMode="off";
+let breathLoopEl=null, breathCritEl=null, radioEl=null, breathMode="off";
+// Separate channels: master UI vol, plus independent radio / breath levels and mutes
+let volRadio=.85, volBreath=.45, muteRadio=false, muteBreath=false;
 function makeAudioEl(src, loop){
   const a=new Audio(src); a.loop=!!loop; a.preload="auto"; a.volume=0; return a;
 }
@@ -186,7 +188,7 @@ function audioInit(){
   if(!breathLoopEl){
     breathLoopEl=makeAudioEl("audio/breath-loop.ogg", true);
     breathCritEl=makeAudioEl("audio/breath-critical.ogg", true);
-    introRadioEl=makeAudioEl("audio/Apollo13-wehaveaproblem.ogg", false);
+    radioEl=makeAudioEl("audio/Apollo13-wehaveaproblem.ogg", true); // loop full track as mission radio
   }
   if(AC||!(window.AudioContext||window.webkitAudioContext)) return;
   AC=new(window.AudioContext||window.webkitAudioContext)();
@@ -194,46 +196,78 @@ function audioInit(){
   nbuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);
   const d=nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
   pbuf=makePink();
-  [55,110.5].forEach((f,i)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=f; g.gain.value=i?.008:.02; o.connect(g);g.connect(master);o.start(); });
+  // Soft cabin hum only (no competing voice)
+  [55,110.5].forEach((f,i)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=f; g.gain.value=i?.008:.015; o.connect(g);g.connect(master);o.start(); });
   const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
-  s.buffer=nbuf;s.loop=true;f.type="lowpass";f.frequency.value=300;g.gain.value=.03;
+  s.buffer=nbuf;s.loop=true;f.type="lowpass";f.frequency.value=300;g.gain.value=.02;
   s.connect(f);f.connect(g);g.connect(master);s.start();
 }
-function setVol(){
-  if(master) master.gain.value=muted?0:vol;
-  const v=muted?0:vol;
-  if(breathLoopEl) breathLoopEl.volume=Math.min(1,v*.55);
-  if(breathCritEl) breathCritEl.volume=Math.min(1,v*.85);
-  if(introRadioEl) introRadioEl.volume=Math.min(1,v*.9);
+function applyChannelVol(){
+  const masterMul=muted?0:vol;
+  if(master) master.gain.value=masterMul;
+  const r=(!muteRadio&&!muted)?Math.min(1,volRadio*masterMul):0;
+  const b=(!muteBreath&&!muted)?Math.min(1,volBreath*masterMul):0;
+  if(radioEl) radioEl.volume=r;
+  if(breathLoopEl) breathLoopEl.volume=b*0.9;
+  if(breathCritEl) breathCritEl.volume=Math.min(1,b*1.15);
 }
+function setVol(){ applyChannelVol(); }
 function setBreathMode(mode){
-  if(breathMode===mode) return;
+  // Never mix breath under intro radio
+  if(G.state==="intro"||G.state==="briefing") mode="off";
+  if(breathMode===mode){ applyChannelVol(); return; }
   breathMode=mode;
   try{
-    if(breathLoopEl){ breathLoopEl.pause(); breathLoopEl.currentTime=0; }
-    if(breathCritEl){ breathCritEl.pause(); breathCritEl.currentTime=0; }
-    if(muted||!mode||mode==="off") return;
+    if(breathLoopEl){ breathLoopEl.pause(); }
+    if(breathCritEl){ breathCritEl.pause(); }
+    if(muted||muteBreath||!mode||mode==="off") return;
     const el=mode==="critical"?breathCritEl:breathLoopEl;
-    if(el){ el.volume=muted?0:(mode==="critical"?vol*.85:vol*.55); el.play().catch(()=>{}); }
+    if(el){ applyChannelVol(); el.play().catch(()=>{}); }
   }catch(_){}
 }
+/** Intro: real Apollo radio ONLY (no breath). Captions stay independent. */
 function playIntroRadio(){
-  if(!introRadioEl||muted) return;
+  if(!radioEl||muted||muteRadio) return;
   try{
-    introRadioEl.currentTime=0;
-    introRadioEl.volume=muted?0:vol*.9;
-    const stopAt=25;
-    introRadioEl.play().catch(()=>{});
+    stopBreathOnly();
+    radioEl.loop=false;
+    radioEl.currentTime=0;
+    applyChannelVol();
+    radioEl.play().catch(()=>{});
+    // Play the opening exchange only (~28 s), then pause until play phase
+    const stopAt=28;
     const checker=()=>{
-      if(!introRadioEl||introRadioEl.paused) return;
-      if(introRadioEl.currentTime>=stopAt){ introRadioEl.pause(); return; }
+      if(!radioEl||radioEl.paused) return;
+      if(radioEl.currentTime>=stopAt){ radioEl.pause(); return; }
       requestAnimationFrame(checker);
     };
     requestAnimationFrame(checker);
   }catch(_){}
 }
 function stopIntroRadio(){
-  try{ if(introRadioEl){ introRadioEl.pause(); introRadioEl.currentTime=0; } }catch(_){}
+  try{ if(radioEl){ radioEl.pause(); } }catch(_){}
+}
+function stopBreathOnly(){
+  try{
+    if(breathLoopEl){ breathLoopEl.pause(); breathLoopEl.currentTime=0; }
+    if(breathCritEl){ breathCritEl.pause(); breathCritEl.currentTime=0; }
+    breathMode="off";
+  }catch(_){}
+}
+/** During assembly: real radio returns louder (loop), breath is separate. */
+function startPlayRadio(){
+  if(!radioEl||muted||muteRadio) return;
+  try{
+    radioEl.loop=true;
+    // Resume near the end of the problem exchange so it feels continuous
+    if(radioEl.currentTime<5||radioEl.currentTime>160) radioEl.currentTime=5;
+    applyChannelVol();
+    radioEl.play().catch(()=>{});
+  }catch(_){}
+}
+function stopAllSamples(){
+  stopIntroRadio();
+  stopBreathOnly();
 }
 function makePink(){                 // pink noise = softer and more natural than white noise
   const n=AC.sampleRate*3, b=AC.createBuffer(1,n,AC.sampleRate), d=b.getChannelData(0);
@@ -295,12 +329,15 @@ function beep(){
 function loopsOn(){
   loopsOff();
   if(AC){ AC.resume(); beep(); }
-  // Sample-based breathing: calm loop while playing; critical track when CO₂ is high
+  // Assembly phase: real radio returns louder; breath is a separate channel
+  startPlayRadio();
   setBreathMode(G.co2>=70?"critical":"loop");
 }
 function loopsOff(){
   clearTimeout(tBreath); clearTimeout(tBeep);
   setBreathMode("off");
+  // Keep radio only during play; stop samples on menus/end
+  if(G.state!=="play"&&G.state!=="intro") stopIntroRadio();
   if(AC&&G.state!=="play"&&G.state!=="intro"&&G.state!=="briefing") AC.suspend();
 }
 function updateTelemetry(){
@@ -397,21 +434,58 @@ function initScene(){
   catch(e){ fail("WebGL is not supported."); return false; }
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x05070d);
-  scene.fog=new THREE.Fog(0x05070d,140,300);
-  camera=new THREE.PerspectiveCamera(50,1,1,500);
+  scene.background=new THREE.Color(0x02040a);
+  scene.fog=new THREE.Fog(0x02040a,160,380);
+  camera=new THREE.PerspectiveCamera(50,1,1,600);
   camera.position.set(-12,15,95);
   controls=new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.copy(BASE);
   controls.enableDamping=true;
   controls.minDistance=25; controls.maxDistance=160;
   controls.maxPolarAngle=Math.PI*.85;
-  scene.add(new THREE.AmbientLight(0x8899bb,.5));
+  scene.add(new THREE.AmbientLight(0x8899bb,.45));
   light=new THREE.PointLight(0xfff1d6,1,400); light.position.set(-10,40,70); scene.add(light);
   const dl=new THREE.DirectionalLight(0x6688cc,.35); dl.position.set(50,30,50); scene.add(dl);
-  const wall=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x2a3140)); wall.position.set(-20,10,0); scene.add(wall);
+
+  // Deep-space starfield behind the cabin
+  (function addStars(){
+    const n=1400, pos=new Float32Array(n*3);
+    for(let i=0;i<n;i++){
+      const r=180+Math.random()*280, th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
+      pos[i*3]=r*Math.sin(ph)*Math.cos(th);
+      pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);
+      pos[i*3+2]=r*Math.cos(ph)-40;
+    }
+    const g=new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos,3));
+    const m=new THREE.PointsMaterial({color:0xdde8ff, size:1.1, sizeAttenuation:true, transparent:true, opacity:.9});
+    scene.add(new THREE.Points(g,m));
+  })();
+  // Planets / Sun / Moon visible through the window
+  function planet(r, color, x,y,z, emissive){
+    const mat=new THREE.MeshStandardMaterial({color, roughness:.85, metalness:.05, emissive: emissive||0x000000, emissiveIntensity: emissive?0.55:0});
+    const mesh=new THREE.Mesh(new THREE.SphereGeometry(r,24,18), mat);
+    mesh.position.set(x,y,z); scene.add(mesh); return mesh;
+  }
+  planet(14, 0xffcc66, 90, 55, -120, 0xffaa33);   // Sun glow
+  planet(6.5, 0xc8d0dc, -70, 40, -90);            // Moon
+  planet(5.2, 0xc1440e, 55, -25, -110);           // Mars
+  planet(3.4, 0x8ab4ff, -40, -30, -130);          // small blue world
+
+  // Cabin interior wall with a large round window looking into space
+  const wall=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x1a2230)); wall.position.set(-20,10,0); scene.add(wall);
+  // Window frame (ring) + open view (darker hole so stars show through via depth)
+  const winR=38;
+  const winFrame=new THREE.Mesh(new THREE.TorusGeometry(winR,2.2,10,48),M(0x6a7588,{metalness:.55,roughness:.35}));
+  winFrame.position.set(55,22,-1); scene.add(winFrame);
+  // Cut a visual “glass” disc slightly in front of stars but transparent-ish
+  const glass=new THREE.Mesh(
+    new THREE.CircleGeometry(winR-1.5,48),
+    new THREE.MeshBasicMaterial({color:0x0a1525, transparent:true, opacity:.12, depthWrite:false})
+  );
+  glass.position.set(55,22,.5); scene.add(glass);
+  // Inner cabin panels
   const gh=new THREE.GridHelper(320,32,0x3a465c,0x252d3c); gh.rotation.x=Math.PI/2; gh.position.set(-20,10,.2); scene.add(gh);
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x1b212c)); fl.rotation.x=-Math.PI/2; fl.position.set(-20,-14,90); scene.add(fl);
+  const fl=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x141a24)); fl.rotation.x=-Math.PI/2; fl.position.set(-20,-14,90); scene.add(fl);
   // Round port
   const ring=portRing=new THREE.Mesh(new THREE.TorusGeometry(DIM.port.r,1.4,12,40),M(0x9aa3b2,{metalness:.6})); ring.position.z=.8; scene.add(ring);
   const hole=new THREE.Mesh(new THREE.CircleGeometry(DIM.port.r,40),new THREE.MeshBasicMaterial({color:0x000000})); hole.position.z=.4; scene.add(hole);
@@ -614,11 +688,13 @@ function startIntro(){
   if(marker) marker.visible=false;
   if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
   controls.enabled=false;
+  stopBreathOnly(); // intro = real radio only, never mixed with breath
   setState("intro"); introStart=performance.now(); alarmOn();
   playIntroRadio();
   let acc=0;
   INTRO.forEach(([k,ms],i)=>{
-    introTimers.push(setTimeout(()=>{ $("introTxt").textContent=t(k); say(t(k),true); if(i===2) alarmOff(); },acc));
+    // Captions only — do not speak over the real radio (was causing the double voice)
+    introTimers.push(setTimeout(()=>{ $("introTxt").textContent=t(k); if(i===2) alarmOff(); },acc));
     acc+=ms;
   });
   introTimers.push(setTimeout(()=>endIntro(),acc));
@@ -627,6 +703,7 @@ function endIntro(){
   if(G.state!=="intro") return;
   introTimers.forEach(clearTimeout); introTimers=[]; alarmOff();
   stopIntroRadio();
+  stopBreathOnly();
   try{ speechSynthesis.cancel(); }catch(_){}
   startBriefing();
 }
@@ -957,10 +1034,48 @@ function init(){
   $("bMute").onclick=()=>{
     muted=!muted; $("bMute").textContent=muted?"🔇":"🔊";
     $("bMute").setAttribute("aria-pressed",String(muted)); setVol();
-    if(muted){ setBreathMode("off"); stopIntroRadio(); }
-    else if(G.state==="play") setBreathMode(G.co2>=70?"critical":"loop");
+    if(muted){ stopAllSamples(); }
+    else if(G.state==="play"){ startPlayRadio(); setBreathMode(G.co2>=70?"critical":"loop"); }
+    else if(G.state==="intro") playIntroRadio();
     if(muted&&"speechSynthesis"in window) speechSynthesis.cancel();
   };
+  // Separate radio / breath controls (start screen + live HUD if present)
+  const wireChan=(id,fn)=>{ const el=$(id); if(el) el.oninput=el.onchange=fn; };
+  wireChan("sVol",()=>{ vol=+$("sVol").value; applyChannelVol(); });
+  wireChan("sVolRadio",()=>{ volRadio=+$("sVolRadio").value; applyChannelVol(); });
+  wireChan("sVolBreath",()=>{ volBreath=+$("sVolBreath").value; applyChannelVol(); });
+  // Sync initial channel levels from the start-screen sliders
+  if($("sVolRadio")) volRadio=+$("sVolRadio").value;
+  if($("sVolBreath")) volBreath=+$("sVolBreath").value;
+  const wireMuteBtn=(id,get,set,apply)=>{
+    const el=$(id); if(!el) return;
+    el.onclick=()=>{ set(!get()); el.setAttribute("aria-pressed",String(get())); el.textContent=get()?"🔇":"🔊"; apply(); };
+  };
+  wireMuteBtn("bMuteRadio",()=>muteRadio,v=>{muteRadio=v;},()=>{
+    applyChannelVol();
+    if(muteRadio) stopIntroRadio();
+    else if(G.state==="intro") playIntroRadio();
+    else if(G.state==="play") startPlayRadio();
+  });
+  wireMuteBtn("bMuteBreath",()=>muteBreath,v=>{muteBreath=v;},()=>{
+    if(muteBreath) stopBreathOnly();
+    else if(G.state==="play") setBreathMode(G.co2>=70?"critical":"loop");
+    applyChannelVol();
+  });
+  // HUD quick toggles mirror start-screen channel mutes
+  wireMuteBtn("bMuteRadioHud",()=>muteRadio,v=>{muteRadio=v;},()=>{
+    applyChannelVol();
+    const b=$("bMuteRadio"); if(b){ b.setAttribute("aria-pressed",String(muteRadio)); b.textContent=muteRadio?"🔇":"🔊"; }
+    if(muteRadio) stopIntroRadio();
+    else if(G.state==="intro") playIntroRadio();
+    else if(G.state==="play") startPlayRadio();
+  });
+  wireMuteBtn("bMuteBreathHud",()=>muteBreath,v=>{muteBreath=v;},()=>{
+    const b=$("bMuteBreath"); if(b){ b.setAttribute("aria-pressed",String(muteBreath)); b.textContent=muteBreath?"🔇":"🔊"; }
+    if(muteBreath) stopBreathOnly();
+    else if(G.state==="play") setBreathMode(G.co2>=70?"critical":"loop");
+    applyChannelVol();
+  });
   $("bFs").onclick=()=>{ try{ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }catch(_){} };
   $("bRetrySubmit").onclick=()=>{ if(G.lastSubmit?.payload) submitScore(true); };
 
