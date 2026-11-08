@@ -1087,3 +1087,128 @@ details.more>summary {
 .steps div {
     min-width: 0
 }
+
+
+/* ===== v2.8: telemetry vertical (left) + brief (right), coach marks, bigger lightbox ===== */
+.hud-mid {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 6px
+}
+
+.hud-mid .telemetry {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 4px;
+    margin-top: 0;
+    padding: 5px 6px;
+    width: max-content;
+    max-width: 52vw;
+    font-size: .72rem
+}
+
+.hud-mid .tel-item {
+    padding: 1px 8px;
+    white-space: nowrap
+}
+
+.hud-mid .side {
+    position: static;
+    margin: 0;
+    width: auto;
+    max-width: min(270px, 56vw);
+    max-height: 30vh;
+    max-height: 30dvh;
+    padding: 4px 10px;
+    font-size: .85rem
+}
+
+.hud-mid .side>summary {
+    min-height: 28px;
+    white-space: nowrap
+}
+
+@media(max-width:600px) {
+    #ban {
+        top: calc(max(8px, env(safe-area-inset-top)) + 270px)
+    }
+}
+
+#imgLightbox img {
+    width: min(96vw, 960px);
+    max-width: none;
+    max-height: calc(100dvh - 80px);
+    image-rendering: auto
+}
+
+/* coach marks */
+#coach {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none
+}
+
+#coach.hide {
+    display: none
+}
+
+#coachRing {
+    position: fixed;
+    border: 3px solid var(--ac);
+    border-radius: 14px;
+    box-shadow: 0 0 0 9999px #00000066, 0 0 18px 4px #ffb020aa;
+    animation: coachPulse 1.1s ease-in-out infinite;
+    transition: all .2s
+}
+
+@keyframes coachPulse {
+
+    0%,
+    100% {
+        transform: scale(1)
+    }
+
+    50% {
+        transform: scale(1.05)
+    }
+}
+
+@media(prefers-reduced-motion:reduce) {
+    #coachRing {
+        animation: none
+    }
+}
+
+#coachCard {
+    position: fixed;
+    width: 280px;
+    max-width: calc(100vw - 16px);
+    background: #111827;
+    border: 1px solid var(--ac);
+    border-radius: 12px;
+    padding: 10px 12px;
+    pointer-events: auto;
+    box-shadow: 0 8px 24px #000b
+}
+
+#coachCard p {
+    margin: 0 0 6px
+}
+
+#coachPaused {
+    font-size: .75rem
+}
+
+.coach-row {
+    display: flex;
+    gap: 8px;
+    align-items: center
+}
+
+.coach-row button {
+    min-height: 36px;
+    padding: .25rem .8rem
+}

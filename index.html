@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <title>Apollo 13: Fix the Air</title>
-<link rel="stylesheet" href="css/styles.css?v=2.7">
+<link rel="stylesheet" href="css/styles.css?v=2.8">
 </head>
 <body>
 <canvas id="cv" tabindex="0" aria-label="3D cabin"></canvas>
@@ -32,6 +32,7 @@
         <button id="bPause" role="menuitem" aria-label="Pause" title="Pause">⏸</button>
         <button id="bView" role="menuitem" aria-label="Reset view" title="Reset view">🎯</button>
         <button id="bFs" role="menuitem" aria-label="Fullscreen" title="Fullscreen">⛶</button>
+        <button id="bHelp" role="menuitem" aria-label="Tutorial" title="Tutorial">❓</button>
         <button id="bMute" role="menuitem" aria-pressed="false" aria-label="Mute all" title="Mute all">🔊</button>
         <button id="bMuteRadioHud" role="menuitem" aria-pressed="false" aria-label="Mute radio" title="Radio">📻</button>
         <button id="bMuteBreathHud" role="menuitem" aria-pressed="false" aria-label="Mute breath" title="Breath">💨</button>
@@ -43,14 +44,14 @@
       </div>
     </div>
   </div>
+  <div class="hud-mid">
   <div id="telemetry" class="telemetry" aria-live="polite">
     <span class="tel-item" data-role="shape"><i></i><span id="telShape">Body: —</span></span>
     <span class="tel-item" data-role="sleeve"><i></i><span id="telSleeve">Envelope: —</span></span>
     <span class="tel-item" data-role="hose"><i></i><span id="telHose">Airflow: —</span></span>
     <span class="tel-item" data-role="seal"><i></i><span id="telSeal">Seal: —</span></span>
   </div>
-  <div id="ban" class="hide" role="alert">⚠ CO₂ CRITICAL</div>
-  <details class="side" open>
+  <details class="side">
     <summary id="tBriefSum">Mission brief</summary>
     <div id="brief" class="mu" style="font-size:.85rem;line-height:1.4">
       <p id="tBriefSit" style="margin:.3rem 0"></p>
@@ -63,6 +64,8 @@
     </div>
     <details><summary id="tRealSizes">Real sizes</summary><div id="facts" class="mu"></div></details>
   </details>
+  </div>
+  <div id="ban" class="hide" role="alert">⚠ CO₂ CRITICAL</div>
   <div class="bot">
     <div id="sub" role="status" aria-live="polite"></div>
     <div class="tools-row">
@@ -282,7 +285,7 @@
 try{ if(window.matchMedia("(max-width:600px)").matches){ var _s=document.querySelector(".side"); if(_s) _s.removeAttribute("open"); } }catch(_){}
 </script>
 <script src="config.js?v=2.4"></script>
-<script src="js/i18n.js?v=2.5"></script>
+<script src="js/i18n.js?v=2.6"></script>
 <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
@@ -295,7 +298,21 @@ if(typeof THREE==="undefined"||!THREE.OrbitControls){
   });
 }
 </script>
-<script type="module" src="js/game.js?v=2.9"></script>
+<script type="module" src="js/game.js?v=3.0"></script>
+
+<div id="coach" class="hide" aria-live="polite">
+  <div id="coachRing"></div>
+  <div id="coachCard" role="dialog" aria-label="Tutorial">
+    <p id="coachTxt"></p>
+    <p id="coachPaused" class="mu"></p>
+    <div class="coach-row">
+      <span id="coachStep" class="mu"></span>
+      <span style="flex:1"></span>
+      <button type="button" id="coachSkip">Skip</button>
+      <button type="button" id="coachNext" class="pri">Next</button>
+    </div>
+  </div>
+</div>
 
 <div id="imgLightbox" class="ov hide" role="dialog" aria-modal="true">
   <button type="button" id="lbClose" class="lb-close" aria-label="Close">✕</button>

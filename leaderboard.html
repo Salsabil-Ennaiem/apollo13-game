@@ -190,6 +190,7 @@
       <tr>
         <th class="rank">#</th>
         <th>Nickname</th>
+        <th>Class</th>
         <th class="score">Score</th>
         <th>Time left</th>
         <th>Hints</th>
@@ -240,10 +241,16 @@
     $("bWeek").onclick = () => setFilter("week");
     $("bAll").onclick = () => setFilter("all");
     $("bRefresh").onclick = load;
-    $("classCode").onchange = () => {
-      classCode = $("classCode").value.trim().toUpperCase();
-      load();
-    };
+    // Filter live while typing (debounced) – "change" only fires on blur, which looked like it did nothing
+    let ccTimer = null;
+    const applyClass = () => { classCode = $("classCode").value.trim().toUpperCase(); load(); };
+    $("classCode").addEventListener("input", () => { clearTimeout(ccTimer); ccTimer = setTimeout(applyClass, 350); });
+    $("classCode").addEventListener("keydown", e => { if (e.key === "Enter") { clearTimeout(ccTimer); applyClass(); } });
+    // Prefill: ?class=ABCD in the link, else the code this browser used in the game
+    try {
+      const qp = new URLSearchParams(location.search).get("class") || localStorage.getItem("a13_class") || "";
+      if (qp) { $("classCode").value = qp.toUpperCase(); classCode = $("classCode").value.trim(); }
+    } catch (_) { }
 
     function timeAgo(iso) {
       const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
@@ -283,7 +290,7 @@
         tbody.textContent = "";
 
         if (!data || data.length === 0) {
-          $("status").textContent = "No scores yet. Be the first!";
+          $("status").textContent = "No scores yet" + (classCode ? " for class " + classCode : "") + ". Be the first!";
           return;
         }
 
@@ -296,6 +303,7 @@
           const cells = [
             String(i + 1),
             r.nickname,
+            r.class_code || "–",
             String(r.score),
             Math.round(r.time_left) + "s",
             String(r.hints),
@@ -306,7 +314,7 @@
             const td = document.createElement("td");
             td.textContent = txt;
             if (idx === 0) td.className = "rank";
-            if (idx === 2) td.className = "score";
+            if (idx === 3) td.className = "score";
             tr.appendChild(td);
           });
           tbody.appendChild(tr);
@@ -315,7 +323,7 @@
         $("status").textContent = data.length + " entries · updated " + new Date().toLocaleTimeString();
       } catch (e) {
         console.error(e);
-        $("status").textContent = "Could not load leaderboard. Check connection or config.";
+        $("status").textContent = "Could not load leaderboard: " + (e && e.message ? e.message : "check connection or config.");
       }
     }
 

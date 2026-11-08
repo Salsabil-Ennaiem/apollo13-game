@@ -161,6 +161,7 @@ window.applyLang = function applyLang(){
   setText("tResearchTitle", t("researchTitle"));
   setText("tMore", t("more")); setText("tSettings", t("settings"));
   ["capBag","capCard","capTape","capHoseM","capSock","capCanSq","capCanRd"].forEach(k=>setText(k,t(k)));
+  setText("coachSkip", t("tutSkip")); setText("coachPaused", t("tutPaused"));
   setText("capCabin", t("capCabin"));
   setText("capSide", t("capSide"));
   setText("capHose", t("capHose"));
@@ -708,6 +709,7 @@ function select(id){
 /* ===== game logic ===== */
 function setState(s){
   G.state=s;
+  if(s!=="play"&&G.coach) endTutorial();
   $("nick").classList.toggle("hide", s!=="nick");
   $("start").classList.toggle("hide", s!=="menu");
   $("intro").classList.toggle("hide", s!=="intro");
@@ -792,6 +794,45 @@ function startBriefing(){
   }
 }
 
+/* ===== coach-mark tutorial (skippable, never shows the solution) ===== */
+const TUT=[
+  {k:"tut1", sel:()=>document.querySelector("#hud .side>summary"), on:()=>openPanel(null)},
+  {k:"tut2", sel:()=>$("bBox"),                                  on:()=>openPanel(null)},
+  {k:"tut3", sel:()=>document.querySelector("#inv button"),      on:()=>openPanel("inv")},
+  {k:"tut4", sel:()=>$("bFolder"),                                on:()=>openPanel("folder")},
+  {k:"tut5", sel:()=>$("bPlace"),                                 on:()=>openPanel("inv")}
+];
+let tutI=-1;
+function tutPos(){
+  if(tutI<0) return;
+  const el=TUT[tutI].sel(); if(!el) return;
+  const r=el.getBoundingClientRect(), ring=$("coachRing"), card=$("coachCard");
+  ring.style.left=(r.left-5)+"px"; ring.style.top=(r.top-5)+"px";
+  ring.style.width=(r.width+10)+"px"; ring.style.height=(r.height+10)+"px";
+  const below=r.top+r.height/2<innerHeight/2;
+  card.style.top=below?(r.bottom+14)+"px":"auto";
+  card.style.bottom=below?"auto":(innerHeight-r.top+14)+"px";
+  card.style.left=clamp(r.left+r.width/2-140,8,Math.max(8,innerWidth-288))+"px";
+}
+function tutGo(i){
+  if(i>=TUT.length) return endTutorial();
+  tutI=i; TUT[i].on&&TUT[i].on();
+  $("coachTxt").textContent=t(TUT[i].k);
+  $("coachNext").textContent=i===TUT.length-1?t("tutDone"):t("tutNext");
+  $("coachStep").textContent=(i+1)+"/"+TUT.length;
+  if(i===0) $("hud").querySelector(".side")?.setAttribute("open","");   // show the brief on step 1
+  requestAnimationFrame(()=>requestAnimationFrame(tutPos));
+}
+function startTutorial(force){
+  if(!force){ try{ if(localStorage.getItem("a13_tut")) return; }catch(_){} }
+  G.coach=true; $("coach").classList.remove("hide"); tutGo(0);
+}
+function endTutorial(){
+  tutI=-1; G.coach=false; $("coach").classList.add("hide");
+  try{ localStorage.setItem("a13_tut","1"); }catch(_){}
+  const sd=document.querySelector("#hud .side"); if(sd) sd.removeAttribute("open");
+  openPanel(null);
+}
 function openMenu(){ $("hudMenu").classList.remove("hide"); $("bMore").setAttribute("aria-expanded","true"); }
 function closeMenu(){ const m=$("hudMenu"); if(!m||m.classList.contains("hide")) return; m.classList.add("hide"); $("bMore").setAttribute("aria-expanded","false"); }
 function openPanel(which){
@@ -821,6 +862,7 @@ function startRound(fromIntro){
   updateTelemetry();
   setState("play");
   say(t("missionStart"), !fromIntro);
+  startTutorial(false);
 }
 function attempt(){
   if(G.state!=="play"||G.solved) return;
@@ -976,7 +1018,7 @@ function frame(now){
       if(G.solved){
         G.co2=Math.max(0,G.co2-25*dt);
         if(G.co2<=CFG.start*.8) return endRound(true);
-      } else {
+      } else if(!G.coach){          // clock is frozen while the tutorial is open
         G.time-=dt;
         G.co2=Math.min(100,G.co2+((100-CFG.start)/G.dur)*.95*(1-.15*G.step)*dt);
         if(G.time<=0||G.co2>=100){ G.time=Math.max(0,G.time); return endRound(false); }
@@ -1062,12 +1104,18 @@ function init(){
   $("sRed").checked=reduced;
   const ver=$("ver"); if(ver) ver.textContent="v"+GAME_VERSION;
 
-  try{ const prev=localStorage.getItem("a13_nick"); if(prev) $("sNick").value=prev; }catch(_){}
+  try{ const prev=localStorage.getItem("a13_nick"); if(prev) $("sNick").value=prev;
+    const pc=localStorage.getItem("a13_class"); if(pc){ $("sClass").value=pc; const d=document.querySelector("#nick details.more"); if(d) d.open=true; } }catch(_){}
 
   $("bNick").onclick=async()=>{
     const n=cleanNick($("sNick").value);
     if(!n){ $("nickErr").textContent=t("nickInvalid"); return; }
-    G.nickname=n; G.classCode=cleanClass($("sClass").value);
+    const rawCls=$("sClass").value.trim();
+    if(rawCls&&!cleanClass(rawCls)){            // never drop a typed class code silently
+      $("nickErr").textContent=t("classInvalid"); const d=document.querySelector("#nick details.more"); if(d) d.open=true; return;
+    }
+    G.nickname=n; G.classCode=cleanClass(rawCls);
+    try{ localStorage.setItem("a13_class",G.classCode||""); }catch(_){}
     try{ localStorage.setItem("a13_nick",n); }catch(_){}
     $("dispNick").textContent=n+(G.classCode?" · "+G.classCode:"");
     $("nickErr").textContent="";
@@ -1130,6 +1178,11 @@ function init(){
   addEventListener("keydown",e=>{ if(e.key==="Escape") closeMenu(); });
   const sVolHud=$("sVolHud");
   if(sVolHud) sVolHud.oninput=()=>{ vol=+sVolHud.value; const m=$("sVol"); if(m) m.value=vol; applyChannelVol(); };
+  $("coachNext").onclick=()=>tutGo(tutI+1);
+  $("coachSkip").onclick=endTutorial;
+  $("bHelp").onclick=()=>{ closeMenu(); if(G.state==="play") startTutorial(true); };
+  addEventListener("resize",tutPos);
+  addEventListener("keydown",e=>{ if(e.key==="Escape"&&G.coach) endTutorial(); });
   $("bHint").onclick=hint;
   $("bPause").onclick=pause;
   $("bResume").onclick=resume;
