@@ -255,12 +255,13 @@ window.A13_I18N = {
       tape: "Ruban adhésif"
     },
 
-    briefAlert: "Alerte : le CO₂ monte. Les filtres du module de commande sont carrés, les orifices du module lunaire sont ronds.",
-    briefTitle: "Quel est l'objectif d'ingénierie principal ?",
-    briefQ1: "Forcer la cartouche carrée dans le trou rond.",
-    briefQ2: "Construire un adaptateur étanche avec le matériel à bord pour diriger l'air.",
-    briefWrong: "Pas tout à fait. Forcer la cartouche casserait l'étanchéité et ferait perdre du temps.",
-    briefRight: "Correct. Construire un adaptateur étanche — puis l'assembler étape par étape.",
+    briefAlert: "Urgence : trois astronautes respirent dans une cabine prévue pour deux. Le CO₂ monte et va devenir dangereux.",
+    briefTitle: "Lisez bien, puis choisissez le meilleur plan.",
+    briefExplain: "Les filtres de rechange du module de commande sont carrés. Les prises d'air du module lunaire sont rondes. Un filtre carré ne peut pas s'emboîter dans une prise ronde. On ne peut pas forcer. Il faut inventer un pont — un adaptateur — avec des sacs plastiques, des couvertures carton, un tuyau de combinaison et du ruban adhésif, pour que l'air filtré arrive encore dans la cabine.",
+    briefQ1: "Enfoncer le filtre carré dans la prise ronde jusqu'à ce qu'il rentre.",
+    briefQ2: "Construire un adaptateur étanche avec le matériel à bord pour faire circuler l'air de la prise ronde à travers le filtre carré.",
+    briefWrong: "Cela ne marchera pas. Forcer le filtre abîmerait la prise et laisserait passer le CO₂.",
+    briefRight: "Oui. Construire un adaptateur étanche étape par étape — c'est ce que l'équipage a fait en 1970.",
     briefContinue: "Commencer l'assemblage",
 
     telShapeOff: "Corps : —",

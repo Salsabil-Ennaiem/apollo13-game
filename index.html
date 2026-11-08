@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <title>Apollo 13: Fix the Air</title>
-<link rel="stylesheet" href="css/styles.css?v=2.2">
+<link rel="stylesheet" href="css/styles.css?v=2.3">
 </head>
 <body>
 <canvas id="cv" tabindex="0" aria-label="3D cabin"></canvas>
@@ -241,10 +241,15 @@
   </div>
 </div>
 
-<script src="config.js?v=2.2"></script>
-<script src="js/i18n.js?v=2.2"></script>
+<script src="config.js?v=2.3"></script>
+<script src="js/i18n.js?v=2.3"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script type="module" src="js/game.js?v=2.2"></script>
+<script type="module" src="js/game.js?v=2.3"></script>
+
+<div id="imgLightbox" class="ov hide" role="dialog" aria-modal="true">
+  <button type="button" id="lbClose" class="lb-close" aria-label="Close">✕</button>
+  <img id="lbImg" alt="">
+</div>
 </body>
 </html>

@@ -495,34 +495,14 @@ function initScene(){
   body(2.4,0xdde6f0,  32, -2, -140);             // Moon near Earth
   body(5,  0xc1440e,  70, 18, -175);             // Mars farther out
 
-  // Curved LM-style cabin shell (you are inside)
-  const shellMat=M(0x1c2433,{roughness:.75,metalness:.25,side:THREE.BackSide});
-  const shell=new THREE.Mesh(new THREE.CylinderGeometry(95,95,110,48,1,true), shellMat);
-  shell.rotation.z=Math.PI/2; shell.position.set(-5,8,25); scene.add(shell);
-  const floor=new THREE.Mesh(
-    new THREE.CylinderGeometry(95,95,4,48,1,false,0,Math.PI),
-    M(0x121820,{roughness:.9,metalness:.1})
-  );
-  floor.rotation.set(0,0,Math.PI/2); floor.position.set(-5,-14,25); scene.add(floor);
+  // Open space work area — no solid wall, no giant decorative ring.
+  // Stars & planets fill the sky; a soft deck holds the bench and parts.
+  const deck=new THREE.Mesh(new THREE.CircleGeometry(90,48), M(0x101820,{roughness:.95,metalness:.05}));
+  deck.rotation.x=-Math.PI/2; deck.position.set(-10,-14.2,20); scene.add(deck);
+  const rim=new THREE.Mesh(new THREE.TorusGeometry(88,0.55,8,64), M(0x2a3548,{metalness:.35,roughness:.55}));
+  rim.rotation.x=-Math.PI/2; rim.position.set(-10,-13.9,20); scene.add(rim);
 
-  // Large glass window on the curved hull
-  const winR=42;
-  const winGroup=new THREE.Group(); winGroup.position.set(55,18,8);
-  winGroup.add(new THREE.Mesh(new THREE.TorusGeometry(winR,2.6,12,56), M(0x8a95a8,{metalness:.65,roughness:.3})));
-  winGroup.add(new THREE.Mesh(new THREE.TorusGeometry(winR-3.2,1.1,10,48), M(0x4a5568,{metalness:.4,roughness:.45})));
-  const glass=new THREE.Mesh(
-    new THREE.CircleGeometry(winR-4,56),
-    new THREE.MeshStandardMaterial({color:0xa8c8e8, transparent:true, opacity:.14, roughness:0.05, metalness:0.1, depthWrite:false})
-  );
-  glass.position.z=0.6; winGroup.add(glass);
-  const glare=new THREE.Mesh(
-    new THREE.CircleGeometry(winR*0.35,32),
-    new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.06, depthWrite:false})
-  );
-  glare.position.set(-10,12,0.8); winGroup.add(glare);
-  scene.add(winGroup);
-
-  // Work bench + round LM port
+  // Work bench + round LM air port (the real problem socket)
   const bench=new THREE.Mesh(new THREE.BoxGeometry(70,2,40),M(0x2e3848,{roughness:.7})); bench.position.set(-26,-13.5,16); scene.add(bench);
   const ring=portRing=new THREE.Mesh(new THREE.TorusGeometry(DIM.port.r,1.4,12,40),M(0x9aa3b2,{metalness:.6})); ring.position.z=.8; scene.add(ring);
   const hole=new THREE.Mesh(new THREE.CircleGeometry(DIM.port.r,40),new THREE.MeshBasicMaterial({color:0x000000})); hole.position.z=.4; scene.add(hole);
@@ -753,7 +733,7 @@ function startBriefing(){
   const choices=$("briefChoices"), fb=$("briefFeedback");
   if(alert) alert.textContent=t("briefAlert");
   if(title) title.textContent=t("briefTitle");
-  if(prompt) prompt.textContent="";
+  if(prompt) prompt.textContent=t("briefExplain");
   if(fb) fb.textContent="";
   if(choices){
     choices.innerHTML="";
@@ -1074,6 +1054,24 @@ function init(){
   };
 
   $("bPlace").onclick=attempt;
+
+  // Folder photos: click to enlarge, click again / backdrop to close
+  const lb=$("imgLightbox");
+  const lbImg=$("lbImg");
+  document.querySelectorAll(".folder-grid img, .photo-gallery img, #cabinPhoto").forEach(img=>{
+    img.style.cursor="zoom-in";
+    img.addEventListener("click", ()=>{
+      if(!lb||!lbImg) return;
+      lbImg.src=img.currentSrc||img.src;
+      lbImg.alt=img.alt||"";
+      lb.classList.remove("hide");
+    });
+  });
+  if(lb){
+    lb.addEventListener("click", e=>{ if(e.target===lb||e.target.id==="lbClose") lb.classList.add("hide"); });
+    addEventListener("keydown", e=>{ if(e.key==="Escape"&&lb&&!lb.classList.contains("hide")) lb.classList.add("hide"); });
+  }
+
   // Parts box + reference folder panels
   function openPanel(which){
     const invP=$("invPanel"), folP=$("folderPanel"), bBox=$("bBox"), bFol=$("bFolder");
@@ -1115,7 +1113,8 @@ function init(){
   if($("sVolBreath")) volBreath=+$("sVolBreath").value;
   const wireMuteBtn=(id,get,set,apply)=>{
     const el=$(id); if(!el) return;
-    el.onclick=()=>{ set(!get()); el.setAttribute("aria-pressed",String(get())); el.textContent=get()?"🔇":"🔊"; apply(); };
+    // Keep the same icon glyph; only light/dim via aria-pressed class
+    el.onclick=()=>{ set(!get()); el.setAttribute("aria-pressed",String(get())); apply(); };
   };
   wireMuteBtn("bMuteRadio",()=>muteRadio,v=>{muteRadio=v;},()=>{
     applyChannelVol();
@@ -1131,13 +1130,13 @@ function init(){
   // HUD quick toggles mirror start-screen channel mutes
   wireMuteBtn("bMuteRadioHud",()=>muteRadio,v=>{muteRadio=v;},()=>{
     applyChannelVol();
-    const b=$("bMuteRadio"); if(b){ b.setAttribute("aria-pressed",String(muteRadio)); b.textContent=muteRadio?"🔇":"🔊"; }
+    const b=$("bMuteRadio"); if(b) b.setAttribute("aria-pressed",String(muteRadio));
     if(muteRadio) stopIntroRadio();
     else if(G.state==="intro") playIntroRadio();
     else if(G.state==="play") startPlayRadio();
   });
   wireMuteBtn("bMuteBreathHud",()=>muteBreath,v=>{muteBreath=v;},()=>{
-    const b=$("bMuteBreath"); if(b){ b.setAttribute("aria-pressed",String(muteBreath)); b.textContent=muteBreath?"🔇":"🔊"; }
+    const b=$("bMuteBreath"); if(b) b.setAttribute("aria-pressed",String(muteBreath));
     if(muteBreath) stopBreathOnly();
     else if(G.state==="play") setBreathMode(G.co2>=70?"critical":"loop");
     applyChannelVol();
