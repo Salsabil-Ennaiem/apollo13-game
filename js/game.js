@@ -63,10 +63,31 @@ let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let muted = false, vol = .6;
 
 function fail(e){
-  try{ $("eM").textContent = String(e&&e.message||e).slice(0,200); $("err").classList.remove("hide"); }
-  catch(_){}
+  try{
+    const msg=String(e&&e.message||e);
+    $("eM").textContent = msg.slice(0,200);
+    // The "WebGL must be enabled" hint only makes sense for WebGL problems
+    const h=$("tErrWebgl"); if(h) h.classList.toggle("hide", !/webgl/i.test(msg));
+    $("err").classList.remove("hide");
+  }catch(_){}
 }
-window.addEventListener("error", e => fail(e.error||e.message));
+window.addEventListener("error", e => {
+  if(e.target && e.target!==window) return;   // failed <img>/<script> loads are not code errors
+  // Errors from cross-origin / injected scripts (in-app browsers, content blockers, extensions)
+  // arrive as a bare "Script error." with no file, line or error object. They are not actionable
+  // and must never lock the player behind the error screen.
+  if(!e.error && (!e.message || /^script error\.?$/i.test(e.message))){
+    console.warn("Ignored cross-origin script error (no details available)");
+    return;
+  }
+  fail(e.error||e.message);
+});
+window.addEventListener("unhandledrejection", e => console.warn("Unhandled promise rejection:", e.reason));
+{ // Error screen can always be dismissed or reloaded
+  const ok=document.getElementById("bErrOk"), rl=document.getElementById("bErrReload");
+  if(ok) ok.onclick=()=>document.getElementById("err").classList.add("hide");
+  if(rl) rl.onclick=()=>location.reload();
+}
 
 const BAD = ["fuck","shit","asshole","bitch","cunt","dick","nigger","nigga","faggot","retard","whore","slut"];
 function cleanNick(raw){

@@ -238,6 +238,10 @@
     <h2 id="tErrTitle">Error</h2>
     <p id="eM"></p>
     <p id="tErrWebgl" class="mu"></p>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" id="bErrOk" class="pri">OK</button>
+      <button type="button" id="bErrReload" aria-label="Reload">↻</button>
+    </div>
   </div>
 </div>
 
@@ -247,9 +251,19 @@ try{ if(window.matchMedia("(max-width:600px)").matches){ var _s=document.querySe
 </script>
 <script src="config.js?v=2.4"></script>
 <script src="js/i18n.js?v=2.4"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-<script type="module" src="js/game.js?v=2.4"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/* If the 3D library could not load (offline, content blocker, strict shields) say so clearly */
+if(typeof THREE==="undefined"||!THREE.OrbitControls){
+  document.addEventListener("DOMContentLoaded",function(){
+    var m=document.getElementById("eM"); if(m) m.textContent="Could not load the 3D library. Check your connection or turn off the content blocker for this site.";
+    var w=document.getElementById("tErrWebgl"); if(w) w.classList.add("hide");
+    var e=document.getElementById("err"); if(e) e.classList.remove("hide");
+  });
+}
+</script>
+<script type="module" src="js/game.js?v=2.7"></script>
 
 <div id="imgLightbox" class="ov hide" role="dialog" aria-modal="true">
   <button type="button" id="lbClose" class="lb-close" aria-label="Close">✕</button>
