@@ -1,10 +1,58 @@
 # Apollo 13: Fix the Air
 
-**Educational browser game** for classrooms: students experience the Apollo 13 CO₂ emergency and rebuild the improvised “mailbox” adapter that let a **square** Command Module canister work with the Lunar Module’s **round** port.
+**Educational browser game** for classrooms: students experience the Apollo 13 CO₂ emergency and rebuild the improvised "mailbox" adapter that let a **square** Command Module canister work with the Lunar Module's **round** port.
 
 This repository holds the **complete static web app** — open it in a browser, share a link, or project it in class. No install, no accounts required to play offline.
 
 **Languages:** English / Français
+
+---
+
+## Architecture
+
+The project is a three-tier architecture that needs **no server of its own**:
+
+```
+┌──────────────────────────┐         ┌───────────────────────────────────┐
+│  Static front end        │  HTTPS  │  Supabase (free tier)             │
+│  (GitHub Pages / any     │────────▶│                                   |
+│   static host)           │         │  ┌─────────────────────────────┐  │
+│                          │  write  │  │ Edge Function submit-score  │  │
+│  index.html + js/game.js │────────▶│  │ (Deno)                      │  │
+│                          │         │  │  • input validation         │  │
+│  leaderboard.html        │  read   │  │  • anti-cheat (step log,    │  │
+│  + config.js             │────────▶│  │    timing, version check)   │  │
+│                          │         │  │  • rate limiting            │  │
+└──────────────────────────┘         │  │  • SERVICE_ROLE key (bypass │  │
+                                     │  │    RLS, writes scores)      │  │
+                                     │  └──────────┬──────────────────┘  │
+                                     │             ▼                     │
+                                     │  ┌─────────────────────────────┐  │
+                                     │  │ Postgres                    │  │
+                                     │  │  players · runs · rate_limits│ │
+                                     │  │  leaderboard  ← public view │  │
+                                     │  │  RLS on all tables          │  │
+                                     │  └─────────────────────────────┘  │
+                                     └───────────────────────────────────┘
+```
+
+### Why this shape
+
+| Decision | Reason |
+|----------|--------|
+| **Static front end** (no Node backend) | The game is pure HTML/CSS/JS. Any static host serves it free and fast; nothing to patch or restart. |
+| **All writes go through one Edge Function** | Scores are **recomputed and validated server-side** (step log, timing, hints, game version). A cheater with DevTools cannot POST a fake score. |
+| **Service role key only inside the function** | The browser never holds a write-capable key. |
+| **Anonymous reads through the `leaderboard` view** | The public sees only `nickname, score, time_left, hints, mistakes, created_at, class_code`. Sensitive columns (`client_ip`, `steps_log`) stay in `runs`, unreachable from the browser. |
+| **Supabase Anonymous Sign-in** | Gives each player a stable `auth_uid` for rate limiting without accounts or emails. |
+
+### Data flow
+
+1. Player finishes the mission → `game.js` calls `sb.functions.invoke("submit-score")`.
+2. The function validates every field, recomputes the score, rate-limits by IP and nickname, inserts into `runs`, and returns the player's today / week / all-time rank.
+3. `leaderboard.html` reads the public `leaderboard` view directly with the publishable (anon) key and auto-refreshes every 10 s.
+
+> **Important:** the view must be created with `security_invoker = off` (the default), and `config.js` `GAME_VERSION` must match `GAME_VERSION` inside `supabase/functions/submit-score/index.ts`, or submissions are rejected.
 
 ---
 
@@ -17,7 +65,7 @@ This repository holds the **complete static web app** — open it in a browser, 
 | **Projector / shared play** | Optional nickname + public leaderboard page for the whole class |
 | **Static website** | Pure HTML / CSS / JS — host anywhere that serves files over HTTPS |
 
-It is **not** a native app, not a Node backend, and not a package you install with npm to “run the game.” The game *is* the web pages in this folder.
+It is **not** a native app, not a Node backend, and not a package you install with npm to "run the game." The game *is* the web pages in this folder.
 
 ---
 
@@ -33,26 +81,42 @@ It is **not** a native app, not a Node backend, and not a package you install wi
 ## Files that make up the game
 
 ```
-index.html          Main game page
-leaderboard.html    Class / public scoreboard page
-config.js           Optional online leaderboard settings only
-css/styles.css      Look and layout
-js/i18n.js          English + French text
-js/game.js          Gameplay, 3D cabin, sound, scoring
+index.html                        Main game page
+leaderboard.html                  Class / public scoreboard page
+config.js                         Supabase URL + publishable key + GAME_VERSION
+css/styles.css                    Look and layout
+js/i18n.js                        English + French text
+js/game.js                        Gameplay, 3D cabin, sound, scoring
+supabase/functions/submit-score/  Score submission Edge Function (Deno)
 ```
 
-For normal classroom use you only need these. Leave `config.js` placeholders unchanged to stay fully offline.
+The publishable key in `config.js` is safe to expose: it can only read the public leaderboard view. There are **no secrets** in this repository.
 
 ---
 
-## Putting it online (recommended)
+## Putting it online
 
-Upload **only the game files** above to any static host:
+### 1. Front end
 
-- **GitHub Pages** — repo Settings → Pages → deploy from branch  
-- **Cloudflare Pages** or **Netlify** — drag-and-drop the folder  
+Upload the game files to any static host:
 
-Students then use a normal `https://…` link (or a QR code). That is the intended way to “run” this project.
+- **GitHub Pages** — repo Settings → Pages → deploy from branch
+- **Cloudflare Pages** or **Netlify** — drag-and-drop the folder
+
+Students then use a normal `https://…` link (or a QR code).
+
+### 2. Backend (only if you want the online leaderboard)
+
+1. Create a free project at [supabase.com](https://supabase.com).
+2. In the SQL editor, create the tables `players`, `runs`, `rate_limits` and the public `leaderboard` view, with **RLS enabled and no public policies** (only the Edge Function writes, using the service role).
+3. Put the project URL and the **publishable** key in `config.js`.
+4. Deploy the function:
+
+```bash
+supabase functions deploy submit-score --no-verify-jwt
+```
+
+Without `config.js` values, the game still works fully offline — nothing is stored online.
 
 ---
 
@@ -64,7 +128,7 @@ Browsers block some features when you double-click `index.html` (`file://`). To 
 python -m http.server 8080
 ```
 
-Then open `http://localhost:8080`.  
+Then open `http://localhost:8080`.
 Any equivalent tool is fine (`npx serve`, VS Code Live Server, etc.). Python is only one convenient option — it is **not** part of the game.
 
 ---
@@ -82,10 +146,12 @@ The cabin starts like the real problem: square canister present, round port empt
 
 ---
 
-## Optional online scores
+## Privacy
 
-By default nothing is stored online.  
-If you want a shared leaderboard, put your free Supabase project URL and **anon** key in `config.js`. Without that, the game still works fully offline.
+- No emails, no real names, no accounts. A nickname is all a player provides.
+- `client_ip` is stored in `runs` for rate limiting and is **not** readable through the public view.
+- Scores can be deleted on request.
+- The browser talks only to Supabase over HTTPS; the page's Content-Security-Policy allows no other external connections.
 
 ---
 
