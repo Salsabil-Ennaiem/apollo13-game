@@ -63,40 +63,13 @@ let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let muted = false, vol = .6;
 
 function fail(e){
-  try{
-    const msg=String(e&&e.message||e);
-    $("eM").textContent = msg.slice(0,200);
-    // The "WebGL must be enabled" hint only makes sense for WebGL problems
-    const h=$("tErrWebgl"); if(h) h.classList.toggle("hide", !/webgl/i.test(msg));
-    $("err").classList.remove("hide");
-  }catch(_){}
+  try{ $("eM").textContent = String(e&&e.message||e).slice(0,200); $("err").classList.remove("hide"); }
+  catch(_){}
 }
 window.addEventListener("error", e => {
-  if(e.target && e.target!==window) return;   // failed <img>/<script> loads are not code errors
-  // Errors from cross-origin / injected scripts (in-app browsers, content blockers, extensions)
-  // arrive as a bare "Script error." with no file, line or error object. They are not actionable
-  // and must never lock the player behind the error screen.
-  if(!e.error && (!e.message || /^script error\.?$/i.test(e.message))){
-    console.warn("Ignored cross-origin script error (no details available)");
-    return;
-  }
-  // Only OUR code (this site) or the 3D library CDN can be a fatal game error.
-  // Anything else is injected by the browser: Brave/MetaMask wallets (window.ethereum),
-  // extensions, in-app browsers, content blockers... -> log it, never block the player.
-  const src=String(e.filename||"");
-  const ours = src.indexOf(location.origin)===0 || src.indexOf("cdn.jsdelivr.net")!==-1;
-  if(!ours){
-    console.warn("Ignored non-game error:", e.message, src||"(injected script)");
-    return;
-  }
+  if (e.filename && !e.filename.startsWith(location.origin)) return; // errors from injected/extension scripts (e.g. Brave wallet) are not ours
   fail(e.error||e.message);
 });
-window.addEventListener("unhandledrejection", e => console.warn("Unhandled promise rejection:", e.reason));
-{ // Error screen can always be dismissed or reloaded
-  const ok=document.getElementById("bErrOk"), rl=document.getElementById("bErrReload");
-  if(ok) ok.onclick=()=>document.getElementById("err").classList.add("hide");
-  if(rl) rl.onclick=()=>location.reload();
-}
 
 const BAD = ["fuck","shit","asshole","bitch","cunt","dick","nigger","nigga","faggot","retard","whore","slut"];
 function cleanNick(raw){
@@ -842,7 +815,7 @@ function attempt(){
   }
   build(id);
   G.filled[role]=id; G.used[id]=true;
-  G.log.push({step:id, t:Math.round((G.dur-G.time)*1000)});
+  G.log.push({step:id, t:Math.round((G.dur-G.time)*1000)}); // in-game clock: pauses with the game, so backgrounding the phone can't break submission
   G.step=Object.keys(G.filled).length;
   G.co2=Math.max(5,G.co2-CFG.stepCo2);
   // this job is done: grey out the part used and its alternatives
