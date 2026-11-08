@@ -80,6 +80,15 @@ window.addEventListener("error", e => {
     console.warn("Ignored cross-origin script error (no details available)");
     return;
   }
+  // Only OUR code (this site) or the 3D library CDN can be a fatal game error.
+  // Anything else is injected by the browser: Brave/MetaMask wallets (window.ethereum),
+  // extensions, in-app browsers, content blockers... -> log it, never block the player.
+  const src=String(e.filename||"");
+  const ours = src.indexOf(location.origin)===0 || src.indexOf("cdn.jsdelivr.net")!==-1;
+  if(!ours){
+    console.warn("Ignored non-game error:", e.message, src||"(injected script)");
+    return;
+  }
   fail(e.error||e.message);
 });
 window.addEventListener("unhandledrejection", e => console.warn("Unhandled promise rejection:", e.reason));
