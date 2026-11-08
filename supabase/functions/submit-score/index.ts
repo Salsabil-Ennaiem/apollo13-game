@@ -3,7 +3,6 @@
 // Deno + Supabase Edge Runtime
 // ============================================================
 // Deploy: supabase functions deploy submit-score --no-verify-jwt
-// (or with JWT verification if you prefer)
 // ============================================================
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -15,29 +14,33 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// ---- Validation constants (must match the game) ----
+// ---- Validation constants (must match js/game.js) ----
 const ALLOWED_DURATIONS = [180, 300, 480];
-// Each part does one JOB. Several parts can do the same job (several valid solutions).
-// KEEP IN SYNC with js/game.js (PART, ROLES, PREREQ). The canister is already in the cabin, so it is not logged.
+
+// Canister is already in the cabin → not logged.
+// KEEP IN SYNC with js/game.js (PART, ROLES, PREREQ)
 const ROLE_OF: Record<string, string> = {
   cover: "shape", check: "shape",
-  bag: "sleeve", stow: "sleeve",
-  hose: "hose", tape: "seal",
+  bag: "sleeve",  stow: "sleeve",
+  hose: "hose",   tape: "seal",
 };
 const ROLES = ["shape", "sleeve", "hose", "seal"];
-const PREREQ: Record<string, string[]> = { hose: ["shape"], seal: ["shape", "sleeve", "hose"] };
-const MIN_TIME_PER_STEP_MS = 900;           // realistic minimum human time between placements
+const PREREQ: Record<string, string[]> = {
+  hose: ["shape"],
+  seal: ["shape", "sleeve", "hose"],
+};
+
+const MIN_TIME_PER_STEP_MS = 900;
 const MAX_HINTS = 3;
 const MAX_MISTAKES = 40;
-const GAME_VERSION = "1.1";
-const RATE_LIMIT_PLAYER = 8;               // submissions per hour per player
-const RATE_LIMIT_IP = 25;                  // submissions per hour per IP
+const GAME_VERSION = "1.1";                 // ← must match config.js
+const RATE_LIMIT_PLAYER = 8;
+const RATE_LIMIT_IP = 25;
 const WINDOW_MS = 60 * 60 * 1000;
 
-// Basic client-side style profanity filter (server-side too)
 const BAD_WORDS = [
   "fuck", "shit", "asshole", "bitch", "cunt", "dick", "nigger", "nigga",
-  "faggot", "retard", "whore", "slut", "piss", "crap", "damn", "bastard"
+  "faggot", "retard", "whore", "slut", "piss", "crap", "damn", "bastard",
 ];
 
 function cleanNickname(raw: string): string | null {
@@ -98,7 +101,6 @@ function validateLog(log: any[], duration: number): { ok: boolean; reason?: stri
 }
 
 serve(async (req: Request) => {
-  // CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -115,7 +117,6 @@ serve(async (req: Request) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // ---- Parse body ----
     const body = await req.json();
     const {
       nickname: rawNick,
@@ -126,10 +127,9 @@ serve(async (req: Request) => {
       mistakes,
       time_left,
       game_version,
-      auth_uid,          // optional: from client supabase.auth.getUser()
+      auth_uid,
     } = body;
 
-    // ---- Basic validation ----
     const nickname = cleanNickname(rawNick);
     if (!nickname) {
       return new Response(JSON.stringify({ error: "Invalid nickname" }), {
@@ -175,7 +175,6 @@ serve(async (req: Request) => {
       });
     }
 
-    // ---- Log validation (anti-cheat core) ----
     const logCheck = validateLog(steps_log, duration_setting);
     if (!logCheck.ok) {
       return new Response(JSON.stringify({ error: logCheck.reason || "Invalid log" }), {
@@ -184,13 +183,13 @@ serve(async (req: Request) => {
       });
     }
 
-    // Recompute score server-side – never trust the client
     const score = computeScore(time_left, hints, mistakes);
 
     // ---- Rate limiting ----
-    const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      || req.headers.get("cf-connecting-ip")
-      || "unknown";
+    const clientIp =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("cf-connecting-ip") ||
+      "unknown";
 
     const ipKey = `ip:${clientIp}`;
     const playerKey = `player:${nickname.toLowerCase()}`;
@@ -214,7 +213,6 @@ serve(async (req: Request) => {
 
       const start = new Date(data.window_start).getTime();
       if (now - start > WINDOW_MS) {
-        // reset window
         await supabase.from("rate_limits").upsert({
           key,
           count: 1,
@@ -225,7 +223,8 @@ serve(async (req: Request) => {
 
       if (data.count >= limit) return false;
 
-      await supabase.from("rate_limits")
+      await supabase
+        .from("rate_limits")
         .update({ count: data.count + 1 })
         .eq("key", key);
       return true;
@@ -247,7 +246,6 @@ serve(async (req: Request) => {
     // ---- Upsert player ----
     let playerId: string;
 
-    // Prefer linking to auth uid if provided
     if (auth_uid) {
       const { data: existing } = await supabase
         .from("players")
@@ -257,10 +255,7 @@ serve(async (req: Request) => {
 
       if (existing) {
         playerId = existing.id;
-        // Optionally update nickname if changed
-        await supabase.from("players")
-          .update({ nickname })
-          .eq("id", playerId);
+        await supabase.from("players").update({ nickname }).eq("id", playerId);
       } else {
         const { data: created, error } = await supabase
           .from("players")
@@ -271,7 +266,6 @@ serve(async (req: Request) => {
         playerId = created.id;
       }
     } else {
-      // Fallback: nickname only (less ideal but works for pure anon)
       const { data: existing } = await supabase
         .from("players")
         .select("id")
@@ -311,14 +305,12 @@ serve(async (req: Request) => {
 
     if (runErr) throw runErr;
 
-    // ---- Compute ranks for response ----
-    // All-time rank
+    // ---- Ranks ----
     const { count: betterAll } = await supabase
       .from("runs")
       .select("*", { count: "exact", head: true })
       .gt("score", score);
 
-    // Today rank
     const todayStart = new Date();
     todayStart.setUTCHours(0, 0, 0, 0);
     const { count: betterToday } = await supabase
@@ -327,7 +319,6 @@ serve(async (req: Request) => {
       .gt("score", score)
       .gte("created_at", todayStart.toISOString());
 
-    // Week rank
     const weekStart = new Date();
     weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay());
     weekStart.setUTCHours(0, 0, 0, 0);
@@ -337,20 +328,22 @@ serve(async (req: Request) => {
       .gt("score", score)
       .gte("created_at", weekStart.toISOString());
 
-    return new Response(JSON.stringify({
-      ok: true,
-      score,
-      run_id: run.id,
-      ranks: {
-        all_time: (betterAll ?? 0) + 1,
-        today: (betterToday ?? 0) + 1,
-        week: (betterWeek ?? 0) + 1,
+    return new Response(
+      JSON.stringify({
+        ok: true,
+        score,
+        run_id: run.id,
+        ranks: {
+          all_time: (betterAll ?? 0) + 1,
+          today: (betterToday ?? 0) + 1,
+          week: (betterWeek ?? 0) + 1,
+        },
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
-    }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-
+    );
   } catch (err) {
     console.error(err);
     return new Response(JSON.stringify({ error: "Server error" }), {
