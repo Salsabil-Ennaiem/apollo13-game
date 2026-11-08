@@ -148,6 +148,17 @@ window.applyLang = function applyLang(){
   setText("tErrTitle", t("errTitle"));
   setText("tErrWebgl", t("errWebgl"));
 
+  // Parts box + reference folder
+  setText("tBoxLabel", t("boxLabel"));
+  setText("tFolderLabel", t("folderLabel"));
+  setText("tInvTitle", t("invTitle"));
+  setText("tFolderTitle", t("folderTitle"));
+  setText("tFolderHint", t("folderHint"));
+  setText("capCabin", t("capCabin"));
+  setText("capSide", t("capSide"));
+  setText("capHose", t("capHose"));
+  setText("capJoint", t("capJoint"));
+
   // Inventory button labels
   document.querySelectorAll("#inv button").forEach(b=>{
     const id=b.dataset.id;
@@ -326,12 +337,22 @@ function beep(){
   }
   tBeep=setTimeout(beep, wait);
 }
+function breathIntensity(){
+  // Decreases as jobs are completed; stops when solved
+  if(G.solved) return "off";
+  const progress=(G.step||0)/ROLES.length; // 0..1
+  if(progress>=1) return "off";
+  // High CO2 or early progress → heavier; as adapter builds, calmer
+  if(G.co2>=70 && progress<0.75) return "critical";
+  if(progress>=0.5) return "loop"; // still present but quieter via volBreath
+  return G.co2>=50?"critical":"loop";
+}
 function loopsOn(){
   loopsOff();
   if(AC){ AC.resume(); beep(); }
-  // Assembly phase: real radio returns louder; breath is a separate channel
+  // Assembly: real radio + breath (breath eases as player solves)
   startPlayRadio();
-  setBreathMode(G.co2>=70?"critical":"loop");
+  setBreathMode(breathIntensity());
 }
 function loopsOff(){
   clearTimeout(tBreath); clearTimeout(tBeep);
@@ -434,62 +455,77 @@ function initScene(){
   catch(e){ fail("WebGL is not supported."); return false; }
   renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));
   scene=new THREE.Scene();
-  scene.background=new THREE.Color(0x02040a);
-  scene.fog=new THREE.Fog(0x02040a,160,380);
-  camera=new THREE.PerspectiveCamera(50,1,1,600);
-  camera.position.set(-12,15,95);
+  scene.background=new THREE.Color(0x000208);
+  scene.fog=new THREE.FogExp2(0x000208, 0.0022);
+  camera=new THREE.PerspectiveCamera(55,1,1,800);
+  camera.position.set(0,8,70);
   controls=new THREE.OrbitControls(camera, renderer.domElement);
-  controls.target.copy(BASE);
+  controls.target.set(-8,2,10);
   controls.enableDamping=true;
-  controls.minDistance=25; controls.maxDistance=160;
-  controls.maxPolarAngle=Math.PI*.85;
-  scene.add(new THREE.AmbientLight(0x8899bb,.45));
-  light=new THREE.PointLight(0xfff1d6,1,400); light.position.set(-10,40,70); scene.add(light);
-  const dl=new THREE.DirectionalLight(0x6688cc,.35); dl.position.set(50,30,50); scene.add(dl);
+  controls.minDistance=30; controls.maxDistance=120;
+  controls.maxPolarAngle=Math.PI*.82;
+  scene.add(new THREE.AmbientLight(0x6a7a99,.4));
+  light=new THREE.PointLight(0xfff1d6,1.1,350); light.position.set(0,30,40); scene.add(light);
+  const dl=new THREE.DirectionalLight(0x88aadd,.4); dl.position.set(40,20,-30); scene.add(dl);
 
-  // Deep-space starfield behind the cabin
+  // Starfield
   (function addStars(){
-    const n=1400, pos=new Float32Array(n*3);
+    const n=2200, pos=new Float32Array(n*3);
     for(let i=0;i<n;i++){
-      const r=180+Math.random()*280, th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
+      const r=220+Math.random()*400, th=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1);
       pos[i*3]=r*Math.sin(ph)*Math.cos(th);
       pos[i*3+1]=r*Math.sin(ph)*Math.sin(th);
-      pos[i*3+2]=r*Math.cos(ph)-40;
+      pos[i*3+2]=r*Math.cos(ph)-80;
     }
     const g=new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(pos,3));
-    const m=new THREE.PointsMaterial({color:0xdde8ff, size:1.1, sizeAttenuation:true, transparent:true, opacity:.9});
-    scene.add(new THREE.Points(g,m));
+    scene.add(new THREE.Points(g, new THREE.PointsMaterial({color:0xe8f0ff, size:1.15, sizeAttenuation:true, transparent:true, opacity:.95})));
   })();
-  // Planets / Sun / Moon visible through the window
-  function planet(r, color, x,y,z, emissive){
-    const mat=new THREE.MeshStandardMaterial({color, roughness:.85, metalness:.05, emissive: emissive||0x000000, emissiveIntensity: emissive?0.55:0});
-    const mesh=new THREE.Mesh(new THREE.SphereGeometry(r,24,18), mat);
-    mesh.position.set(x,y,z); scene.add(mesh); return mesh;
-  }
-  planet(14, 0xffcc66, 90, 55, -120, 0xffaa33);   // Sun glow
-  planet(6.5, 0xc8d0dc, -70, 40, -90);            // Moon
-  planet(5.2, 0xc1440e, 55, -25, -110);           // Mars
-  planet(3.4, 0x8ab4ff, -40, -30, -130);          // small blue world
 
-  // Cabin interior wall with a large round window looking into space
-  const wall=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x1a2230)); wall.position.set(-20,10,0); scene.add(wall);
-  // Window frame (ring) + open view (darker hole so stars show through via depth)
-  const winR=38;
-  const winFrame=new THREE.Mesh(new THREE.TorusGeometry(winR,2.2,10,48),M(0x6a7588,{metalness:.55,roughness:.35}));
-  winFrame.position.set(55,22,-1); scene.add(winFrame);
-  // Cut a visual “glass” disc slightly in front of stars but transparent-ish
-  const glass=new THREE.Mesh(
-    new THREE.CircleGeometry(winR-1.5,48),
-    new THREE.MeshBasicMaterial({color:0x0a1525, transparent:true, opacity:.12, depthWrite:false})
+  // Organized sky through the window: Sun, Earth + Moon, Mars
+  function body(r, color, x,y,z, emis){
+    const mat=new THREE.MeshStandardMaterial({
+      color, roughness:.8, metalness:.04,
+      emissive: emis||0x000000, emissiveIntensity: emis?0.7:0
+    });
+    const m=new THREE.Mesh(new THREE.SphereGeometry(r,28,20), mat);
+    m.position.set(x,y,z); scene.add(m); return m;
+  }
+  body(18, 0xffc857, -95, 48, -160, 0xffaa22);  // Sun
+  body(9,  0x3d7dd6,  20, -8, -150);             // Earth
+  body(2.4,0xdde6f0,  32, -2, -140);             // Moon near Earth
+  body(5,  0xc1440e,  70, 18, -175);             // Mars farther out
+
+  // Curved LM-style cabin shell (you are inside)
+  const shellMat=M(0x1c2433,{roughness:.75,metalness:.25,side:THREE.BackSide});
+  const shell=new THREE.Mesh(new THREE.CylinderGeometry(95,95,110,48,1,true), shellMat);
+  shell.rotation.z=Math.PI/2; shell.position.set(-5,8,25); scene.add(shell);
+  const floor=new THREE.Mesh(
+    new THREE.CylinderGeometry(95,95,4,48,1,false,0,Math.PI),
+    M(0x121820,{roughness:.9,metalness:.1})
   );
-  glass.position.set(55,22,.5); scene.add(glass);
-  // Inner cabin panels
-  const gh=new THREE.GridHelper(320,32,0x3a465c,0x252d3c); gh.rotation.x=Math.PI/2; gh.position.set(-20,10,.2); scene.add(gh);
-  const fl=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x141a24)); fl.rotation.x=-Math.PI/2; fl.position.set(-20,-14,90); scene.add(fl);
-  // Round port
+  floor.rotation.set(0,0,Math.PI/2); floor.position.set(-5,-14,25); scene.add(floor);
+
+  // Large glass window on the curved hull
+  const winR=42;
+  const winGroup=new THREE.Group(); winGroup.position.set(55,18,8);
+  winGroup.add(new THREE.Mesh(new THREE.TorusGeometry(winR,2.6,12,56), M(0x8a95a8,{metalness:.65,roughness:.3})));
+  winGroup.add(new THREE.Mesh(new THREE.TorusGeometry(winR-3.2,1.1,10,48), M(0x4a5568,{metalness:.4,roughness:.45})));
+  const glass=new THREE.Mesh(
+    new THREE.CircleGeometry(winR-4,56),
+    new THREE.MeshStandardMaterial({color:0xa8c8e8, transparent:true, opacity:.14, roughness:0.05, metalness:0.1, depthWrite:false})
+  );
+  glass.position.z=0.6; winGroup.add(glass);
+  const glare=new THREE.Mesh(
+    new THREE.CircleGeometry(winR*0.35,32),
+    new THREE.MeshBasicMaterial({color:0xffffff, transparent:true, opacity:.06, depthWrite:false})
+  );
+  glare.position.set(-10,12,0.8); winGroup.add(glare);
+  scene.add(winGroup);
+
+  // Work bench + round LM port
+  const bench=new THREE.Mesh(new THREE.BoxGeometry(70,2,40),M(0x2e3848,{roughness:.7})); bench.position.set(-26,-13.5,16); scene.add(bench);
   const ring=portRing=new THREE.Mesh(new THREE.TorusGeometry(DIM.port.r,1.4,12,40),M(0x9aa3b2,{metalness:.6})); ring.position.z=.8; scene.add(ring);
   const hole=new THREE.Mesh(new THREE.CircleGeometry(DIM.port.r,40),new THREE.MeshBasicMaterial({color:0x000000})); hole.position.z=.4; scene.add(hole);
-  const bench=new THREE.Mesh(new THREE.BoxGeometry(70,2,40),M(0x3b4558)); bench.position.set(-26,-13.5,16); scene.add(bench);
 
   const c=DIM.canister;
   // Physical canister already in cabin (Smithsonian-like starting state)
@@ -599,7 +635,7 @@ function zoom(f){
   o.setLength(clamp(o.length()*f,25,160));
   camera.position.copy(controls.target).add(o); controls.update();
 }
-function resetView(){ camera.position.set(-12,15,95); controls.target.copy(BASE); controls.update(); }
+function resetView(){ camera.position.set(0,8,70); controls.target.set(-8,2,10); controls.update(); }
 
 /* ===== UI / inventory + drag (pointer events: mouse, pen and touch) ===== */
 let drag=null, suppressClick=false;
@@ -688,13 +724,16 @@ function startIntro(){
   if(marker) marker.visible=false;
   if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
   controls.enabled=false;
-  stopBreathOnly(); // intro = real radio only, never mixed with breath
+  // Intro: clear fiction voice (TTS) + captions only — no real radio mix
+  stopAllSamples();
   setState("intro"); introStart=performance.now(); alarmOn();
-  playIntroRadio();
   let acc=0;
   INTRO.forEach(([k,ms],i)=>{
-    // Captions only — do not speak over the real radio (was causing the double voice)
-    introTimers.push(setTimeout(()=>{ $("introTxt").textContent=t(k); if(i===2) alarmOff(); },acc));
+    introTimers.push(setTimeout(()=>{
+      $("introTxt").textContent=t(k);
+      say(t(k), true); // fiction narrator — clear spoken briefing
+      if(i===2) alarmOff();
+    },acc));
     acc+=ms;
   });
   introTimers.push(setTimeout(()=>endIntro(),acc));
@@ -702,8 +741,7 @@ function startIntro(){
 function endIntro(){
   if(G.state!=="intro") return;
   introTimers.forEach(clearTimeout); introTimers=[]; alarmOff();
-  stopIntroRadio();
-  stopBreathOnly();
+  stopAllSamples();
   try{ speechSynthesis.cancel(); }catch(_){}
   startBriefing();
 }
@@ -790,10 +828,19 @@ function attempt(){
   G.sel=null; clearGhost();
   document.querySelectorAll("#inv button").forEach(b=>b.setAttribute("aria-pressed","false"));
   updateTelemetry();
+  // Breathing eases as the adapter is built; stops when complete
   if(G.step>=ROLES.length){
     G.solved=true; if(marker) marker.visible=false;
+    setBreathMode("off");
     say(t("complete"), true);
-  } else say(t("good")+" "+t("keepBuilding"));
+  } else {
+    setBreathMode(breathIntensity());
+    // Soften breath volume as progress increases
+    const ease=1-0.55*((G.step||0)/ROLES.length);
+    if(breathLoopEl) breathLoopEl.volume=Math.min(1,(muteBreath||muted?0:volBreath*vol)*0.9*ease);
+    if(breathCritEl) breathCritEl.volume=Math.min(1,(muteBreath||muted?0:volBreath*vol)*1.1*ease);
+    say(t("good")+" "+t("keepBuilding"));
+  }
 }
 function nextRole(){ return ROLES.find(r=>!G.filled[r]&&(PREREQ[r]||[]).every(p=>G.filled[p])); }
 function hint(){
@@ -937,7 +984,7 @@ function frame(now){
     const crit=co>=75&&G.state==="play";
     $("ban").classList.toggle("hide",!crit);
     // Switch breathing sample as pressure rises
-    if(G.state==="play"&&!muted) setBreathMode(co>=70?"critical":"loop");
+    if(G.state==="play"&&!muted) setBreathMode(breathIntensity());
     else if(G.state!=="play") setBreathMode("off");
     const ef=!reduced&&G.state!=="menu"&&G.state!=="nick";
     $("cv").style.filter=ef&&co>45?`blur(${(((co-45)/55)*6).toFixed(1)}px)`:"none";
@@ -1027,6 +1074,25 @@ function init(){
   };
 
   $("bPlace").onclick=attempt;
+  // Parts box + reference folder panels
+  function openPanel(which){
+    const invP=$("invPanel"), folP=$("folderPanel"), bBox=$("bBox"), bFol=$("bFolder");
+    const openInv=which==="inv", openFol=which==="folder";
+    if(invP) invP.classList.toggle("hide", !openInv);
+    if(folP) folP.classList.toggle("hide", !openFol);
+    if(bBox) bBox.setAttribute("aria-expanded", String(openInv));
+    if(bFol) bFol.setAttribute("aria-expanded", String(openFol));
+  }
+  $("bBox")&&($("bBox").onclick=()=>{
+    const open=$("invPanel")&&$("invPanel").classList.contains("hide");
+    openPanel(open?"inv":null);
+  });
+  $("bFolder")&&($("bFolder").onclick=()=>{
+    const open=$("folderPanel")&&$("folderPanel").classList.contains("hide");
+    openPanel(open?"folder":null);
+  });
+  $("bBoxClose")&&($("bBoxClose").onclick=()=>openPanel(null));
+  $("bFolderClose")&&($("bFolderClose").onclick=()=>openPanel(null));
   $("bHint").onclick=hint;
   $("bPause").onclick=pause;
   $("bResume").onclick=resume;

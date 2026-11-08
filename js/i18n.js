@@ -137,7 +137,16 @@ window.A13_I18N = {
     debriefProblem: "Problem: 3 crew in a 2-person cabin; square CM canisters would not fit the round LM ports.",
     debriefSolution: "Solution: Ground engineers improvised a sealed adapter from flight-plan covers, an LCG bag, a suit hose, and duct tape — the “mailbox”.",
     nasmCaption: "Smithsonian NASM A19760747000 — the real adapter.",
-    cabinCaption: "Installed in the LM cabin (historical photo)."
+    cabinCaption: "Installed in the LM cabin (historical photo).",
+    boxLabel: "Parts box",
+    folderLabel: "Reference folder",
+    invTitle: "Onboard parts",
+    folderTitle: "Mission photos",
+    folderHint: "Study these photos of the real adapter, then build yours with the parts box.",
+    capCabin: "In the LM cabin",
+    capSide: "Side view",
+    capHose: "Hose path",
+    capJoint: "Sealed joint",
   },
 
   fr: {
@@ -266,7 +275,16 @@ window.A13_I18N = {
     debriefProblem: "Problème : 3 astronautes dans une cabine pour 2 ; les cartouches carrées du CM ne rentraient pas dans les orifices ronds du LM.",
     debriefSolution: "Solution : les ingénieurs au sol ont improvisé un adaptateur étanche avec des couvertures de plan de vol, un sac LCG, un tuyau de combinaison et du ruban adhésif — le « mailbox ».",
     nasmCaption: "Smithsonian NASM A19760747000 — le vrai adaptateur.",
-    cabinCaption: "Installé dans la cabine du LM (photo historique)."
+    cabinCaption: "Installé dans la cabine du LM (photo historique).",
+    boxLabel: "Caisse de pièces",
+    folderLabel: "Dossier de référence",
+    invTitle: "Pièces à bord",
+    folderTitle: "Photos de mission",
+    folderHint: "Étudiez ces photos du vrai adaptateur, puis construisez le vôtre avec la caisse de pièces.",
+    capCabin: "Dans la cabine du LM",
+    capSide: "Vue de côté",
+    capHose: "Chemin du tuyau",
+    capJoint: "Joint scellé",
   }
 };
 

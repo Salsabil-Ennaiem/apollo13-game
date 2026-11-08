@@ -665,3 +665,98 @@ body.dragging #inv {
     flex: 1;
     min-width: 100px
 }
+
+/* Parts box + reference folder */
+.tools-row {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    flex-wrap: wrap
+}
+
+.tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #1b2536;
+    border: 1px solid var(--ln);
+    border-radius: 12px;
+    padding: .55rem .9rem;
+    font-weight: 600
+}
+
+.tool-btn .tool-ic {
+    font-size: 1.25rem;
+    line-height: 1
+}
+
+.tool-btn[aria-expanded=true] {
+    border-color: var(--ac);
+    box-shadow: 0 0 0 2px #ffb02055
+}
+
+.panel {
+    background: var(--pn);
+    border: 1px solid var(--ln);
+    border-radius: 14px;
+    padding: 10px;
+    margin-top: 6px;
+    max-height: 42vh;
+    overflow: auto
+}
+
+.panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 8px
+}
+
+.panel-x {
+    min-width: 40px;
+    min-height: 40px;
+    padding: .25rem
+}
+
+.folder-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px
+}
+
+.folder-grid figure {
+    margin: 0;
+    background: #0b1220;
+    border: 1px solid var(--ln);
+    border-radius: 10px;
+    overflow: hidden
+}
+
+.folder-grid img {
+    display: block;
+    width: 100%;
+    height: 100px;
+    object-fit: cover
+}
+
+.folder-grid figcaption {
+    font-size: .75rem;
+    color: var(--mu);
+    padding: 4px 6px;
+    text-align: center
+}
+
+@media(max-width:600px) {
+    .folder-grid {
+        grid-template-columns: 1fr
+    }
+
+    .folder-grid img {
+        height: 120px
+    }
+
+    .tool-btn span:not(.tool-ic) {
+        font-size: .85rem
+    }
+}
