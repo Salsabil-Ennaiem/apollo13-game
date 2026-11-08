@@ -17,11 +17,19 @@ const corsHeaders = {
 
 // ---- Validation constants (must match the game) ----
 const ALLOWED_DURATIONS = [180, 300, 480];
-const CORRECT_ORDER = ["canister", "cover", "bag", "hose", "tape"];
-const MIN_TIME_PER_STEP_MS = 1800;          // realistic minimum human time
+// Each part does one JOB. Several parts can do the same job (several valid solutions).
+// KEEP IN SYNC with js/game.js (PART, ROLES, PREREQ). The canister is already in the cabin, so it is not logged.
+const ROLE_OF: Record<string, string> = {
+  cover: "shape", check: "shape",
+  bag: "sleeve", stow: "sleeve",
+  hose: "hose", tape: "seal",
+};
+const ROLES = ["shape", "sleeve", "hose", "seal"];
+const PREREQ: Record<string, string[]> = { hose: ["shape"], seal: ["shape", "sleeve", "hose"] };
+const MIN_TIME_PER_STEP_MS = 900;           // realistic minimum human time between placements
 const MAX_HINTS = 3;
 const MAX_MISTAKES = 40;
-const GAME_VERSION = "1.0";
+const GAME_VERSION = "1.1";
 const RATE_LIMIT_PLAYER = 8;               // submissions per hour per player
 const RATE_LIMIT_IP = 25;                  // submissions per hour per IP
 const WINDOW_MS = 60 * 60 * 1000;
@@ -58,18 +66,21 @@ function computeScore(timeLeft: number, hints: number, mistakes: number): number
 }
 
 function validateLog(log: any[], duration: number): { ok: boolean; reason?: string } {
-  if (!Array.isArray(log) || log.length !== CORRECT_ORDER.length) {
+  if (!Array.isArray(log) || log.length !== ROLES.length) {
     return { ok: false, reason: "Invalid step count" };
   }
-
+  const filled = new Set<string>();
   let prevT = -1;
   for (let i = 0; i < log.length; i++) {
     const entry = log[i];
     if (!entry || typeof entry.step !== "string" || typeof entry.t !== "number") {
       return { ok: false, reason: "Malformed log entry" };
     }
-    if (entry.step !== CORRECT_ORDER[i]) {
-      return { ok: false, reason: "Wrong step order" };
+    const role = ROLE_OF[entry.step];
+    if (!role) return { ok: false, reason: "Unknown item" };
+    if (filled.has(role)) return { ok: false, reason: "Duplicate job" };
+    for (const need of PREREQ[role] ?? []) {
+      if (!filled.has(need)) return { ok: false, reason: "Wrong step order" };
     }
     if (entry.t < prevT) {
       return { ok: false, reason: "Timestamps not increasing" };
@@ -80,6 +91,7 @@ function validateLog(log: any[], duration: number): { ok: boolean; reason?: stri
     if (entry.t < 0 || entry.t > duration * 1000 + 5000) {
       return { ok: false, reason: "Timestamp out of range" };
     }
+    filled.add(role);
     prevT = entry.t;
   }
   return { ok: true };

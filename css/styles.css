@@ -45,8 +45,8 @@ table{width:100%;border-collapse:collapse}td,th{padding:4px 6px;border-bottom:1p
 .lang-bar button{min-width:44px;min-height:36px;padding:.35rem .6rem}
 .lang-bar button[aria-pressed=true],.lang-bar button.pri{background:var(--ac);color:#111;font-weight:700;border-color:var(--ac)}
 
-/* Inventory drag affordance */
-#inv button{cursor:grab;user-select:none}
+/* Inventory drag affordance (touch: sideways scrolls the bar, upward drags the part) */
+#inv button{cursor:grab;user-select:none;touch-action:pan-x;-webkit-user-select:none}
 #inv button:active{cursor:grabbing}
 #inv button.dragging{opacity:.5;outline:2px dashed var(--ac)}
 
@@ -58,3 +58,11 @@ table{width:100%;border-collapse:collapse}td,th{padding:4px 6px;border-bottom:1p
 @media(max-width:600px){.compare{grid-template-columns:1fr}}
 .compare .box{background:#0b1220;border:1px solid var(--ln);border-radius:10px;padding:10px;font-size:.9rem}
 .compare h3{margin:.2rem 0 .5rem;font-size:1rem;color:var(--ac)}
+
+body.dragging{cursor:grabbing}
+body.dragging #inv{overflow:visible}
+
+/* Apollo 13 intro captions over the 3D cabin */
+.intro{background:transparent;align-items:flex-end;pointer-events:none}
+.introBox{pointer-events:auto;max-width:720px;background:#000c;border:1px solid var(--ln);border-radius:14px;padding:14px 18px;margin-bottom:max(12px,env(safe-area-inset-bottom));text-align:center}
+#introTxt{font-size:1.15rem;margin:0 0 10px}

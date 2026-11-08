@@ -20,36 +20,35 @@ const DIM = {
   canister: { w:18.4, h:22.9, d:18.4, src:"Smithsonian NASM A19760747000" },
   port: { r:7.5, src:"Approx. LM round port" },
   cover: { w:21, h:28, src:"Flight plan cover approx." },
+  check: { w:20, h:28, src:"Checklist cover approx." },
   hose: { len:132.1, r:1.9, src:"Smithsonian hose" },
-  tape: { w:5, src:"Duct tape approx." },
-  bag: { w:18, h:26, src:"LCG bag approx." }
+  bag: { w:18, h:26, src:"LCG bag approx." },
+  stow: { w:30, h:40, src:"Stowage bag approx." },
+  tape: { w:5, src:"Duct tape approx." }
 };
-// Canister is already in the cabin at start → not in inventory; sequence starts after it
-const VALID_ORDERS = [
-  ["cover","bag","hose","tape"],
-  ["bag","cover","hose","tape"]
-];
-const REQUIRED = new Set(["cover","bag","hose","tape"]);
-const STEPS = {
-  cover: ["Shape adapter from flight-plan cover","Stiff cardstock forms an arch around the square canister."],
-  bag: ["Add LCG bag sleeve","Flexible airtight plastic around the adapter."],
-  hose: ["Connect suit hose to round port","Air must flow from port through the canister."],
-  tape: ["Seal with duct tape","Tape every joint — leaks defeat the fix."]
+/* The canister is already in the cabin (real start). Four JOBS must be done.
+   Several parts can do the same job, so there are several valid solutions:
+   shape  = rigid shell around the square canister   (flight plan cover OR checklist cover)
+   sleeve = airtight flexible layer                   (LCG bag OR stowage bag)
+   hose   = air path from the round port              (suit hose)
+   seal   = tape on every joint, always last           (duct tape)
+   hist:true marks the parts NASA really used. KEEP IN SYNC with supabase/functions/submit-score/index.ts */
+const ROLES = ["shape","sleeve","hose","seal"];
+const PART = {
+  cover:{role:"shape", hist:true}, check:{role:"shape"},
+  bag:{role:"sleeve", hist:true},  stow:{role:"sleeve"},
+  hose:{role:"hose", hist:true},   tape:{role:"seal", hist:true}
 };
-// Inventory WITHOUT canister (already in scene)
+const PREREQ = { hose:["shape"], seal:["shape","sleeve","hose"] };   // jobs that must exist first
 const ITEMS = [
   {id:"cover", ic:"📘", d:"21×28 cm"},
-  {id:"sock", ic:"🧦", d:"30 cm"},
-  {id:"bag", ic:"🛍️", d:"18×26 cm"},
-  {id:"pen", ic:"🖊️", d:"14 cm"},
-  {id:"hose", ic:"🧵", d:"132 cm"},
-  {id:"helmet", ic:"🪖", d:"30 cm"},
-  {id:"tape", ic:"🩹", d:"5 cm"},
-  {id:"check", ic:"📋", d:"20×28 cm"}
+  {id:"check", ic:"📋", d:"20×28 cm"},
+  {id:"bag",   ic:"🛍️", d:"18×26 cm"},
+  {id:"stow",  ic:"🎒", d:"30×40 cm"},
+  {id:"hose",  ic:"🧵", d:"132 cm"},
+  {id:"tape",  ic:"🩹", d:"5 cm"}
 ];
-const SLOT = {
-  cover:[-28,8,18], bag:[-28,4,18], hose:[-14,8,14], tape:[-28,0,18]
-};
+const CP = {x:-28, y:-2, z:18};   // centre of the canister on the bench
 
 const $ = id => document.getElementById(id);
 const clamp = (v,a,b) => Math.min(b, Math.max(a,v));
@@ -57,12 +56,11 @@ const G = {
   state:"nick", step:0, co2:15, time:300, dur:300, hints:0, mist:0,
   sel:null, solved:false, fired:{}, teams:["Player"], ti:0, results:[],
   used:{}, nickname:"", classCode:null, authUid:null,
-  log:[], startTs:0, lastSubmit:null, placedSeq:["canister"] // canister already present
+  log:[], startTs:0, lastSubmit:null, filled:{}
 };
 
 let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let muted = false, vol = .6;
-let lastDropPos = null;
 
 function fail(e){
   try{ $("eM").textContent = String(e&&e.message||e).slice(0,200); $("err").classList.remove("hide"); }
@@ -132,6 +130,8 @@ window.applyLang = function applyLang(){
   setHTML("tObjBag", t("objBag"));
   setHTML("tObjHose", t("objHose"));
   setHTML("tObjTape", t("objTape"));
+  setHTML("tObjAlt", t("objAlt"));
+  setText("bSkip", t("skip"));
   setHTML("tBriefTip", t("briefTip"));
   setText("tRealSizes", t("realSizes"));
   setText("ban", t("ban"));
@@ -218,21 +218,72 @@ function beep(){
   tBeep=setTimeout(beep, wait);
 }
 function loopsOn(){ loopsOff(); if(AC){ AC.resume(); breath(); beep(); } }
-function loopsOff(){ clearTimeout(tBreath); clearTimeout(tBeep); if(AC&&G.state!=="play") AC.suspend(); }
+function loopsOff(){ clearTimeout(tBreath); clearTimeout(tBeep); if(AC&&G.state!=="play"&&G.state!=="intro") AC.suspend(); }
+/* ===== voice (Web Speech API, picks the best installed voice) ===== */
+let VOICES=[];
+function loadVoices(){ try{ VOICES=speechSynthesis.getVoices()||[]; }catch(_){ VOICES=[]; } }
+if("speechSynthesis" in window){ loadVoices(); try{ speechSynthesis.addEventListener("voiceschanged", loadVoices); }catch(_){} }
+function bestVoice(){
+  const fr=window.A13_LANG==="fr", re=fr?/^fr/i:/^en/i;
+  const pool=VOICES.filter(v=>re.test(v.lang)); if(!pool.length) return null;
+  const sc=v=>{
+    const n=(v.name+" "+v.voiceURI).toLowerCase(); let k=0;
+    if(/neural|natural|online/.test(n)) k+=6;      // Edge / Windows "Natural" voices
+    if(/premium|enhanced/.test(n)) k+=5;           // Apple
+    if(/google/.test(n)) k+=4;                     // Chrome / Android
+    if(/microsoft/.test(n)) k+=2;
+    if(/espeak|compact|festival/.test(n)) k-=6;    // robotic
+    const l=v.lang.toLowerCase();
+    if(l===(fr?"fr-fr":"en-us")) k+=2; else if(!fr&&l==="en-gb") k+=1;
+    return k;
+  };
+  return pool.sort((a,b)=>sc(b)-sc(a))[0];
+}
+function radioTick(open){            // short "push-to-talk" click + static, like a radio call
+  if(!AC||muted||!nbuf) return;
+  const t0=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
+  o.type="square"; o.frequency.value=open?1700:1100;
+  g.gain.setValueAtTime(.05,t0); g.gain.exponentialRampToValueAtTime(.0001,t0+.07);
+  o.connect(g); g.connect(master); o.start(t0); o.stop(t0+.08);
+  const s=AC.createBufferSource(), f=AC.createBiquadFilter(), gg=AC.createGain();
+  s.buffer=nbuf; f.type="highpass"; f.frequency.value=2500;
+  gg.gain.setValueAtTime(.06,t0); gg.gain.linearRampToValueAtTime(0,t0+.12);
+  s.connect(f); f.connect(gg); gg.connect(master); s.start(t0); s.stop(t0+.13);
+}
+let speakTimer=0;
 function say(msg, speak){
   $("sub").textContent = msg;
-  if(speak && !muted && "speechSynthesis" in window){
-    try{
-      speechSynthesis.cancel();
-      const u=new SpeechSynthesisUtterance(msg);
-      u.rate=1.05; u.volume=vol; u.lang = window.A13_LANG==="fr" ? "fr-FR" : "en-US";
+  if(!speak||muted||!("speechSynthesis" in window)) return;
+  try{
+    clearTimeout(speakTimer); speechSynthesis.cancel();
+    speakTimer=setTimeout(()=>{            // small delay: Chrome drops speak() right after cancel()
+      const u=new SpeechSynthesisUtterance(msg), v=bestVoice();
+      if(v){ u.voice=v; u.lang=v.lang; } else u.lang = window.A13_LANG==="fr" ? "fr-FR" : "en-US";
+      u.rate=.95; u.pitch=.92; u.volume=Math.min(1,vol*1.2);
+      u.onstart=()=>radioTick(true); u.onend=()=>radioTick(false);
       speechSynthesis.speak(u);
-    }catch(_){}
-  }
+    },60);
+  }catch(_){}
 }
+let tAlarm=0;
+function alarmOn(){
+  clearTimeout(tAlarm);
+  const tick=()=>{
+    if(G.state!=="intro"||!AC) return;
+    const t0=AC.currentTime;
+    [880,660].forEach((f,i)=>{
+      const o=AC.createOscillator(), g=AC.createGain(), a=t0+i*.25;
+      o.type="square"; o.frequency.value=f; g.gain.setValueAtTime(.04,a); g.gain.setValueAtTime(0,a+.2);
+      o.connect(g); g.connect(master); o.start(a); o.stop(a+.22);
+    });
+    tAlarm=setTimeout(tick,1000);
+  };
+  tick();
+}
+function alarmOff(){ clearTimeout(tAlarm); }
 
 /* ===== 3D ===== */
-let renderer, scene, camera, controls, light, placed, marker, problem, dropPlane, preCanister;
+let renderer, scene, camera, controls, light, placed, marker, preCanister, portRing, ghost=null;
 const BASE = new THREE.Vector3(-12,0,10);
 const M = (c,o) => new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:.15},o||{}));
 
@@ -257,15 +308,11 @@ function initScene(){
   const gh=new THREE.GridHelper(320,32,0x3a465c,0x252d3c); gh.rotation.x=Math.PI/2; gh.position.set(-20,10,.2); scene.add(gh);
   const fl=new THREE.Mesh(new THREE.PlaneGeometry(320,200),M(0x1b212c)); fl.rotation.x=-Math.PI/2; fl.position.set(-20,-14,90); scene.add(fl);
   // Round port
-  const ring=new THREE.Mesh(new THREE.TorusGeometry(DIM.port.r,1.4,12,40),M(0x9aa3b2,{metalness:.6})); ring.position.z=.8; scene.add(ring);
+  const ring=portRing=new THREE.Mesh(new THREE.TorusGeometry(DIM.port.r,1.4,12,40),M(0x9aa3b2,{metalness:.6})); ring.position.z=.8; scene.add(ring);
   const hole=new THREE.Mesh(new THREE.CircleGeometry(DIM.port.r,40),new THREE.MeshBasicMaterial({color:0x000000})); hole.position.z=.4; scene.add(hole);
   const bench=new THREE.Mesh(new THREE.BoxGeometry(70,2,40),M(0x3b4558)); bench.position.set(-26,-13.5,16); scene.add(bench);
 
   const c=DIM.canister;
-  // Ghost: square does not fit round port
-  problem=new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d),new THREE.MeshBasicMaterial({color:0xff4d4f,wireframe:true}));
-  problem.position.set(0,0,9); scene.add(problem);
-
   // Physical canister already in cabin (Smithsonian-like starting state)
   preCanister=new THREE.Group();
   preCanister.add(new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d),M(0x8d949e,{metalness:.7})));
@@ -273,11 +320,8 @@ function initScene(){
     const band=new THREE.Mesh(new THREE.BoxGeometry(c.w+.4,.8,c.d+.4),M(0x4b5260));
     band.position.y=i*4.5; preCanister.add(band);
   }
-  preCanister.position.set(-28,-2,18);
+  preCanister.position.set(CP.x,CP.y,CP.z);
   scene.add(preCanister);
-
-  dropPlane=new THREE.Mesh(new THREE.PlaneGeometry(220,220), new THREE.MeshBasicMaterial({visible:false,side:THREE.DoubleSide}));
-  dropPlane.rotation.x=-Math.PI/2; dropPlane.position.set(-20,-12,20); scene.add(dropPlane);
 
   placed=new THREE.Group(); scene.add(placed);
 
@@ -286,43 +330,85 @@ function initScene(){
   const arrowMat=new THREE.MeshBasicMaterial({color:0xffb020,transparent:true,opacity:.92});
   const cone=new THREE.Mesh(new THREE.ConeGeometry(3.2,7,12),arrowMat); cone.rotation.x=Math.PI; cone.position.y=4;
   const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.7,.7,8,8),arrowMat); shaft.position.y=10;
-  marker.add(cone); marker.add(shaft); scene.add(marker);
+  marker.add(cone); marker.add(shaft); marker.visible=false; scene.add(marker);
 
   resize(); return true;
 }
 function resize(){ if(!renderer)return; renderer.setSize(innerWidth,innerHeight); camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix(); }
 addEventListener("resize", resize);
 
-function build(id, worldPos){
+const MAT = {
+  cover:()=>M(0xe8d9b0,{transparent:true,opacity:.92,roughness:.9}),
+  check:()=>M(0xaebfd6,{transparent:true,opacity:.92,roughness:.9}),
+  bag:()=>M(0x9fc4e8,{transparent:true,opacity:.55,depthWrite:false}),
+  stow:()=>M(0xe3e8ee,{transparent:true,opacity:.5,depthWrite:false}),
+  tape:()=>M(0x7a7f86)
+};
+function hoseCurve(){
+  const v=(x,y,z)=>new THREE.Vector3(x,y,z);
+  return new THREE.CatmullRomCurve3([v(CP.x,CP.y+DIM.canister.h/2,CP.z), v(CP.x+4,CP.y+22,CP.z-1), v(-10,14,10), v(0,0,3)]);
+}
+function roleParts(role){            // box parts of each job, in world cm (null = hose, a tube)
   const c=DIM.canister;
-  const fb=SLOT[id]||[-20,0,16];
-  const px=worldPos?worldPos.x:fb[0], py=worldPos?worldPos.y:fb[1], pz=worldPos?worldPos.z:fb[2];
-  const g=new THREE.Group(); g.userData.itemId=id;
-  if(id==="cover"){
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(c.w+3,14,c.d+3),M(0xe8d9b0,{transparent:true,opacity:.92,roughness:.9})));
-  } else if(id==="bag"){
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(DIM.bag.w,1.5,DIM.bag.h),M(0x9fc4e8,{transparent:true,opacity:.6})));
-  } else if(id==="hose"){
-    const start=new THREE.Vector3(px,py,pz);
-    const end=new THREE.Vector3(0,0,3);
-    const mid=start.clone().lerp(end,.5).add(new THREE.Vector3(0,12,0));
-    g.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([start,mid,end]),32,DIM.hose.r,10),M(0xf2f2f2)));
-    placed.add(g); return g;
-  } else if(id==="tape"){
-    [-6,0,6].forEach(y=>{
-      const tor=new THREE.Mesh(new THREE.TorusGeometry(10,.8,8,24),M(0x7a7f86));
-      tor.rotation.x=Math.PI/2; tor.position.set(px,py+y,pz); placed.add(tor);
+  if(role==="shape")  return [{s:[c.w+3,14,c.d+3],  p:[CP.x,CP.y+2,CP.z]}];
+  if(role==="sleeve") return [{s:[c.w+6,17,c.d+6],  p:[CP.x,CP.y+1,CP.z]}];
+  if(role==="seal")   return [-6,0,6].map(dy=>({s:[c.w+6.8,1.4,c.d+6.8], p:[CP.x,CP.y+dy,CP.z]}));
+  return null;
+}
+function disposeObj(o){
+  o.traverse(x=>{
+    if(x.geometry) x.geometry.dispose();
+    if(x.material) (Array.isArray(x.material)?x.material:[x.material]).forEach(m=>m.dispose());
+  });
+}
+function build(id){
+  const role=PART[id].role, g=new THREE.Group(); g.userData.itemId=id;
+  if(role==="hose") g.add(new THREE.Mesh(new THREE.TubeGeometry(hoseCurve(),40,DIM.hose.r,10),M(0xf2f2f2)));
+  else roleParts(role).forEach(pt=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(...pt.s),MAT[id]()); m.position.set(...pt.p); g.add(m);
+  });
+  placed.add(g); return g;
+}
+function clearPlaced(){ placed.children.slice().forEach(o=>{ disposeObj(o); placed.remove(o); }); }
+
+/* Ghost = dashed outline + soft fill ("shadow") showing where the selected part goes */
+function clearGhost(){ if(ghost){ scene.remove(ghost); disposeObj(ghost); ghost=null; } }
+function showGhost(role){
+  clearGhost();
+  const g=new THREE.Group(), hits=[], lines=[], fills=[], invis=new THREE.MeshBasicMaterial({visible:false});
+  const lineMat=()=>{ const m=new THREE.LineDashedMaterial({color:0xffb020,dashSize:2,gapSize:1.5}); lines.push(m); return m; };
+  const fillMat=()=>{ const m=new THREE.MeshBasicMaterial({color:0xffb020,transparent:true,opacity:.14,depthWrite:false}); fills.push(m); return m; };
+  let anchor; const c=DIM.canister, parts=roleParts(role);
+  if(parts){
+    parts.forEach(pt=>{
+      const geo=new THREE.BoxGeometry(...pt.s);
+      const fill=new THREE.Mesh(geo,fillMat()); fill.position.set(...pt.p); g.add(fill);
+      const ln=new THREE.LineSegments(new THREE.EdgesGeometry(geo),lineMat()); ln.position.set(...pt.p); ln.computeLineDistances(); g.add(ln);
     });
-    return null;
+    const hit=new THREE.Mesh(new THREE.BoxGeometry(c.w+10,c.h+2,c.d+10),invis); hit.position.set(CP.x,CP.y,CP.z); g.add(hit); hits.push(hit);
+    anchor=new THREE.Vector3(CP.x,CP.y+c.h/2+2,CP.z);
   } else {
-    g.add(new THREE.Mesh(new THREE.BoxGeometry(8,8,8),M(0x555555)));
+    const cu=hoseCurve();
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(cu,40,DIM.hose.r,10),fillMat()));
+    const ln=new THREE.Line(new THREE.BufferGeometry().setFromPoints(cu.getPoints(48)),lineMat()); ln.computeLineDistances(); g.add(ln);
+    const hit=new THREE.Mesh(new THREE.TubeGeometry(cu,24,7,8),invis); g.add(hit); hits.push(hit);
+    anchor=cu.getPoint(.5).clone();
   }
-  g.position.set(px,py,pz); placed.add(g); return g;
+  g.userData={hits,lines,fills,anchor}; g.updateMatrixWorld(true);
+  scene.add(g); ghost=g;
 }
-function clearPlaced(){
-  placed.traverse(o=>{ if(o.geometry)o.geometry.dispose(); if(o.material)o.material.dispose(); });
-  placed.clear();
+function setGhostHot(on){
+  if(!ghost) return;
+  const col=on?0x3ddc97:0xffb020;
+  ghost.userData.lines.forEach(m=>m.color.set(col)); ghost.userData.fills.forEach(m=>m.color.set(col));
 }
+const ray=new THREE.Raycaster(), v2=new THREE.Vector2();
+function overGhost(x,y){
+  if(!ghost) return false;
+  v2.set(x/innerWidth*2-1, -(y/innerHeight)*2+1); ray.setFromCamera(v2,camera);
+  return ray.intersectObjects(ghost.userData.hits,false).length>0;
+}
+const isCanvasAt=(x,y)=>document.elementFromPoint(x,y)===$("cv");
 function orbit(dt,dp){
   const o=camera.position.clone().sub(controls.target);
   const s=new THREE.Spherical().setFromVector3(o);
@@ -336,33 +422,26 @@ function zoom(f){
 }
 function resetView(){ camera.position.set(-12,15,95); controls.target.copy(BASE); controls.update(); }
 
-/* ===== UI / inventory + drag ===== */
+/* ===== UI / inventory + drag (pointer events: mouse, pen and touch) ===== */
+let drag=null, suppressClick=false;
 function buildUI(){
   const inv=$("inv"); inv.textContent="";
   ITEMS.forEach((it,i)=>{
     const b=document.createElement("button");
-    b.dataset.id=it.id;
+    b.dataset.id=it.id; b.type="button";
     b.setAttribute("aria-pressed","false");
-    b.draggable=true;
     b.textContent=`${i+1}. ${it.ic} ${tItem(it.id)}`;
-    const s=document.createElement("small"); s.textContent=it.d; b.appendChild(s);
-    b.onclick=()=>select(it.id);
-    // HTML5 drag from inventory
-    b.addEventListener("dragstart", e=>{
-      if(G.state!=="play"||G.used[it.id]){ e.preventDefault(); return; }
-      e.dataTransfer.setData("text/plain", it.id);
-      e.dataTransfer.effectAllowed="copy";
-      b.classList.add("dragging");
-      select(it.id);
-      const ghost=$("dragGhost");
-      if(ghost){ ghost.style.display="block"; ghost.textContent=`${it.ic} ${tItem(it.id)}`; }
-    });
-    b.addEventListener("dragend", ()=>{
-      b.classList.remove("dragging");
-      const ghost=$("dragGhost"); if(ghost) ghost.style.display="none";
+    const sm=document.createElement("small"); sm.textContent=it.d; b.appendChild(sm);
+    b.onclick=()=>{ if(!suppressClick) select(it.id); };
+    b.addEventListener("pointerdown", e=>{
+      if(G.state!=="play"||G.used[it.id]||b.disabled) return;
+      drag={id:it.id,x:e.clientX,y:e.clientY,pid:e.pointerId,active:false};
     });
     inv.appendChild(b);
   });
+  window.addEventListener("pointermove", dragMove);
+  window.addEventListener("pointerup", dragEnd);
+  window.addEventListener("pointercancel", dragEnd);
   const facts=$("facts"); facts.textContent="";
   Object.keys(DIM).forEach(k=>{
     const d=DIM[k];
@@ -371,10 +450,39 @@ function buildUI(){
     facts.appendChild(p);
   });
 }
+function dragMove(e){
+  if(!drag||e.pointerId!==drag.pid) return;
+  const dx=e.clientX-drag.x, dy=e.clientY-drag.y;
+  if(!drag.active){
+    // touch: only an upward gesture starts a drag (sideways still scrolls the bar)
+    const start = e.pointerType==="touch" ? (dy<-10&&Math.abs(dy)>Math.abs(dx)) : Math.hypot(dx,dy)>8;
+    if(!start) return;
+    drag.active=true; select(drag.id); document.body.classList.add("dragging");
+    const it=ITEMS.find(x=>x.id===drag.id), gh=$("dragGhost");
+    if(gh){ gh.style.display="block"; gh.textContent=`${it.ic} ${tItem(it.id)}`; }
+  }
+  const gh=$("dragGhost"); if(gh){ gh.style.left=(e.clientX+14)+"px"; gh.style.top=(e.clientY-44)+"px"; }
+  setGhostHot(isCanvasAt(e.clientX,e.clientY)&&overGhost(e.clientX,e.clientY));   // turns green over the target
+}
+function dragEnd(e){
+  if(!drag||e.pointerId!==drag.pid) return;
+  const was=drag.active; drag=null;
+  document.body.classList.remove("dragging");
+  const gh=$("dragGhost"); if(gh) gh.style.display="none";
+  if(!was) return;
+  suppressClick=true; setTimeout(()=>{ suppressClick=false; },60);
+  if(e.type==="pointercancel"||G.state!=="play"){ setGhostHot(false); return; }
+  if(isCanvasAt(e.clientX,e.clientY)&&overGhost(e.clientX,e.clientY)) attempt();
+  else { setGhostHot(false); say(t("dropOnOutline")); }
+}
 function select(id){
   if(G.state!=="play"||G.used[id]) return;
+  const role=PART[id].role;
+  if(G.filled[role]){ say(t("roleTaken").replace("{item}",tItem(G.filled[role]))); return; }
   G.sel=id;
   document.querySelectorAll("#inv button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.id===id)));
+  showGhost(role);
+  say(t("dropOnOutline"));
 }
 
 /* ===== game logic ===== */
@@ -382,90 +490,92 @@ function setState(s){
   G.state=s;
   $("nick").classList.toggle("hide", s!=="nick");
   $("start").classList.toggle("hide", s!=="menu");
+  $("intro").classList.toggle("hide", s!=="intro");
   $("pause").classList.toggle("hide", s!=="pause");
   $("end").classList.toggle("hide", s!=="won"&&s!=="lost");
-  $("hud").classList.toggle("hide", s==="nick"||s==="menu"||s==="won"||s==="lost");
-  if(s==="play") loopsOn(); else loopsOff();
+  $("hud").classList.toggle("hide", s==="nick"||s==="menu"||s==="intro"||s==="won"||s==="lost");
+  if(s==="intro"){ if(AC) AC.resume(); }
+  else if(s==="play") loopsOn(); else loopsOff();
 }
-function startRound(){
+
+/* ----- Apollo 13 opening: explosion, alarm, lifeboat, the square-vs-round problem ----- */
+const INTRO=[["intro1",3600],["intro2",4200],["intro3",4800],["intro4",2800]];
+const INTRO_TOTAL=INTRO.reduce((a,x)=>a+x[1],0);
+let introTimers=[], introStart=0;
+function startIntro(){
+  Object.assign(G,{step:0,co2:CFG.start,time:G.dur,sel:null,solved:false,filled:{},used:{},log:[]});
+  clearPlaced(); clearGhost();
+  if(marker) marker.visible=false;
+  if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
+  controls.enabled=false;
+  setState("intro"); introStart=performance.now(); alarmOn();
+  let acc=0;
+  INTRO.forEach(([k,ms],i)=>{
+    introTimers.push(setTimeout(()=>{ $("introTxt").textContent=t(k); say(t(k),true); if(i===2) alarmOff(); },acc));
+    acc+=ms;
+  });
+  introTimers.push(setTimeout(()=>endIntro(),acc));
+}
+function endIntro(){
+  if(G.state!=="intro") return;
+  introTimers.forEach(clearTimeout); introTimers=[]; alarmOff();
+  try{ speechSynthesis.cancel(); }catch(_){}
+  startRound(true);
+}
+
+function startRound(fromIntro){
   Object.assign(G,{
     step:0, co2:CFG.start, time:G.dur, hints:0, mist:0,
     sel:null, solved:false, fired:{}, used:{}, log:[],
-    startTs:performance.now(), placedSeq:["canister"]
+    startTs:performance.now(), filled:{}
   });
-  clearPlaced();
-  if(problem) problem.visible=true;
-  if(preCanister) preCanister.visible=true;
-  if(marker) marker.visible=true;
-  lastDropPos=null;
+  clearPlaced(); clearGhost();
+  if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
+  if(portRing) portRing.material.color.set(0x9aa3b2);
+  if(marker) marker.visible=false;
+  controls.enabled=true;
   resetView();
   document.querySelectorAll("#inv button").forEach(b=>{ b.disabled=false; b.setAttribute("aria-pressed","false"); });
   $("tn").textContent=G.teams[G.ti];
   $("hl").textContent=CFG.hints;
   $("bHint").disabled=false;
   setState("play");
-  say(t("missionStart"), true);
+  say(t("missionStart"), !fromIntro);
 }
 function attempt(){
   if(G.state!=="play"||G.solved) return;
   if(!G.sel){ say(t("selectFirst")); return; }
   if(G.used[G.sel]){ say(t("already")); return; }
-  if(!Array.isArray(G.placedSeq)) G.placedSeq=["canister"];
-
-  const trial=G.placedSeq.filter(x=>x!=="canister").concat([G.sel]);
-  // Compare against VALID_ORDERS (which do not include canister)
-  const stillPossible=VALID_ORDERS.some(ord=>
-    Array.isArray(ord) && trial.every((id,i)=>ord[i]===id)
-  );
-
-  if(stillPossible && REQUIRED.has(G.sel)){
-    build(G.sel, lastDropPos);
-    G.used[G.sel]=true;
-    G.placedSeq.push(G.sel);
-    G.log.push({step:G.sel, t:Math.round(performance.now()-G.startTs)});
-    G.step=G.placedSeq.length;
-    G.co2=Math.max(5,G.co2-CFG.stepCo2);
-    const btn=document.querySelector(`#inv button[data-id="${G.sel}"]`);
-    if(btn) btn.disabled=true;
-    const just=G.sel; G.sel=null; lastDropPos=null;
-    document.querySelectorAll("#inv button").forEach(b=>b.setAttribute("aria-pressed","false"));
-
-    const core=G.placedSeq.filter(x=>x!=="canister");
-    const done=VALID_ORDERS.some(ord=>
-      Array.isArray(ord)&&ord.length===core.length&&ord.every((id,i)=>core[i]===id)
-    );
-    if(done){
-      G.solved=true; marker.visible=false;
-      if(problem) problem.visible=false;
-      say(t("complete"), true);
-    } else {
-      say(t("good")+" "+t("keepBuilding"));
-    }
-  } else {
-    if(lastDropPos && !REQUIRED.has(G.sel)){
-      build(G.sel, lastDropPos);
-      G.used[G.sel]=true;
-      const btn=document.querySelector(`#inv button[data-id="${G.sel}"]`);
-      if(btn) btn.disabled=true;
-      G.sel=null; lastDropPos=null;
-      document.querySelectorAll("#inv button").forEach(b=>b.setAttribute("aria-pressed","false"));
-    }
+  const id=G.sel, role=PART[id].role;
+  if(G.filled[role]){ say(t("roleTaken").replace("{item}",tItem(G.filled[role]))); return; }
+  const missing=(PREREQ[role]||[]).filter(r=>!G.filled[r]);
+  if(missing.length){                       // right part, wrong moment
     G.mist++; G.co2=Math.min(100,G.co2+CFG.mistakeCo2);
-    say(REQUIRED.has(G.sel)?t("wrongOrder"):t("useless"));
+    say(t("tooEarly")[role]||t("wrongOrder")); return;
   }
+  build(id);
+  G.filled[role]=id; G.used[id]=true;
+  G.log.push({step:id, t:Math.round(performance.now()-G.startTs)});
+  G.step=Object.keys(G.filled).length;
+  G.co2=Math.max(5,G.co2-CFG.stepCo2);
+  // this job is done: grey out the part used and its alternatives
+  ITEMS.filter(it=>PART[it.id].role===role).forEach(it=>{
+    const b=document.querySelector(`#inv button[data-id="${it.id}"]`); if(b) b.disabled=true;
+  });
+  G.sel=null; clearGhost();
+  document.querySelectorAll("#inv button").forEach(b=>b.setAttribute("aria-pressed","false"));
+  if(G.step>=ROLES.length){
+    G.solved=true; if(marker) marker.visible=false;
+    say(t("complete"), true);
+  } else say(t("good")+" "+t("keepBuilding"));
 }
+function nextRole(){ return ROLES.find(r=>!G.filled[r]&&(PREREQ[r]||[]).every(p=>G.filled[p])); }
 function hint(){
   if(G.state!=="play"||G.hints>=CFG.hints||G.solved) return;
   G.hints++; G.time=Math.max(0,G.time-CFG.hintCost);
   $("hl").textContent=CFG.hints-G.hints;
-  const core=G.placedSeq.filter(x=>x!=="canister");
-  let nextId=null;
-  for(const ord of VALID_ORDERS){
-    if(!Array.isArray(ord)) continue;
-    if(core.every((id,i)=>ord[i]===id) && ord.length>core.length){ nextId=ord[core.length]; break; }
-  }
-  const msg = nextId && STEPS[nextId] ? STEPS[nextId][1] : t("keepBuilding");
-  say(`Hint (−${CFG.hintCost}s): ${msg}`);
+  const r=nextRole();
+  say(`${t("hint")} (−${CFG.hintCost}s): ${r?t("roleHints")[r]:t("keepBuilding")}`);
   if(G.hints>=CFG.hints) $("bHint").disabled=true;
 }
 
@@ -515,20 +625,20 @@ function endRound(win){
   const endChk=$("endChk");
   if(endChk){
     endChk.textContent="";
-    ["cover","bag","hose","tape"].forEach(id=>{
-      const li=document.createElement("li");
-      const done=Array.isArray(G.placedSeq)&&G.placedSeq.includes(id);
-      li.textContent=`${done?"✓":"○"} ${tItem(id)} — ${done?t("placed"):t("notPlaced")}`;
-      li.style.color=done?"var(--ok)":"var(--mu)";
+    ROLES.forEach(r=>{
+      const id=G.filled[r], li=document.createElement("li");
+      li.textContent=`${id?"✓":"○"} ${t("roles")[r]} — ${id?tItem(id):t("notPlaced")}`;
+      li.style.color=id?"var(--ok)":"var(--mu)";
       endChk.appendChild(li);
     });
   }
   const asm=$("endAssembly");
   if(asm){
-    const core=(G.placedSeq||[]).filter(x=>x!=="canister");
+    const seq=G.log.map(x=>tItem(x.step));
+    const hist=ROLES.every(r=>G.filled[r]&&PART[G.filled[r]].hist);
     asm.textContent = win
-      ? `${t("finalOrder")} ${core.map(tItem).join(" → ")}`
-      : (core.length ? core.map(tItem).join(" → ")+" — "+t("incomplete") : t("nothing"));
+      ? `${t("finalOrder")} ${seq.join(" → ")}. ${hist?t("sameAsNasa"):t("altSolution")}`
+      : (seq.length ? seq.join(" → ")+" — "+t("incomplete") : t("nothing"));
   }
   $("tRealSteps").textContent=t("realSteps");
 
@@ -540,7 +650,7 @@ function endRound(win){
   });
   const nx=(G.ti+1)%G.teams.length;
   $("bNext").textContent = G.teams.length>1 ? `${t("nextTeam")} ${G.teams[nx]}` : t("playAgain");
-  $("bNext").onclick=()=>{ G.ti=nx; startRound(); };
+  $("bNext").onclick=()=>{ G.ti=nx; startRound(false); };
   $("bNext").focus();
   if(win) submitScore(true);
 }
@@ -559,7 +669,7 @@ function frame(now){
         if(G.co2<=CFG.start*.8) return endRound(true);
       } else {
         G.time-=dt;
-        G.co2=Math.min(100,G.co2+((100-CFG.start)/G.dur)*.95*(1-.15*Math.max(0,G.step-1))*dt);
+        G.co2=Math.min(100,G.co2+((100-CFG.start)/G.dur)*.95*(1-.15*G.step)*dt);
         if(G.time<=0||G.co2>=100){ G.time=Math.max(0,G.time); return endRound(false); }
       }
       [[50,"CO2"],[75,"crit"],[90,"crew"]].forEach((a,i)=>{
@@ -588,44 +698,29 @@ function frame(now){
     if(ef&&co>50&&G.state==="play"){ if(now>nextFl){ light.intensity=.55+Math.random()*.45; nextFl=now+500+Math.random()*700; } }
     else if(light) light.intensity=1;
     controls.target.y=BASE.y+(ef&&G.state==="play"?Math.sin(now/(1400-800*l))*.6*l:0);
-    if(marker&&marker.visible&&!G.solved){
-      const core=Array.isArray(G.placedSeq)?G.placedSeq.filter(x=>x!=="canister"):[];
-      let nextId=null;
-      for(const ord of VALID_ORDERS){
-        if(!Array.isArray(ord)) continue;
-        if(core.every((id,i)=>ord[i]===id)&&ord.length>core.length){ nextId=ord[core.length]; break; }
-      }
-      if(nextId&&SLOT[nextId]){
-        const p=SLOT[nextId];
-        marker.position.set(p[0],p[1]+10,p[2]);
-        marker.scale.setScalar(1+.12*Math.sin(now/280));
-      }
+    if(marker){
+      if(ghost&&G.state==="play"){
+        const a=ghost.userData.anchor;
+        marker.visible=true; marker.position.set(a.x,a.y+3,a.z); marker.scale.setScalar(1+.12*Math.sin(now/280));
+        ghost.userData.fills.forEach(m=>{ m.opacity=.12+.08*Math.sin(now/260); });
+      } else marker.visible=false;
+    }
+    if(G.state==="intro"){
+      const el=performance.now()-introStart, p=clamp(el/INTRO_TOTAL,0,1);
+      camera.position.set(-12, 15+(1-p)*22, 95+(1-p)*70); controls.target.copy(BASE);
+      if(!reduced&&el<1800){ const k=(1-el/1800)*1.6; camera.position.x+=(Math.random()-.5)*k; camera.position.y+=(Math.random()-.5)*k; }
+      if(!reduced&&el<7500){ if(now>nextFl){ light.intensity=.2+Math.random()*.8; nextFl=now+500+Math.random()*400; } }
+      else light.intensity=1;
+      const u=(el-7800)/4200;                       // the square canister will not fit the round port
+      if(u>0&&u<1){
+        const sn=Math.sin(Math.PI*u);
+        preCanister.position.set(CP.x+(0-CP.x)*sn*.9, CP.y+(0-CP.y)*sn*.9, CP.z+(12-CP.z)*sn);
+        portRing.material.color.set(sn>.6?0xff4d4f:0x9aa3b2);
+      } else { preCanister.position.set(CP.x,CP.y,CP.z); portRing.material.color.set(0x9aa3b2); }
     }
     controls.update();
     renderer.render(scene,camera);
   }catch(e){ fail(e); }
-}
-
-/* ===== raycast drop ===== */
-const ray=new THREE.Raycaster(), v2=new THREE.Vector2();
-function hitDrop(clientX, clientY){
-  v2.set(clientX/innerWidth*2-1, -(clientY/innerHeight)*2+1);
-  ray.setFromCamera(v2, camera);
-  if(dropPlane){
-    const hits=ray.intersectObject(dropPlane);
-    if(hits.length){
-      const pt=hits[0].point;
-      lastDropPos={x:pt.x,y:Math.max(pt.y,-10),z:pt.z};
-      return true;
-    }
-  }
-  const plane=new THREE.Plane(new THREE.Vector3(0,1,0),12);
-  const pt2=new THREE.Vector3();
-  if(ray.ray.intersectPlane(plane, pt2)){
-    lastDropPos={x:pt2.x,y:-10,z:pt2.z};
-    return true;
-  }
-  return false;
 }
 
 /* ===== init ===== */
@@ -675,7 +770,7 @@ function init(){
       if(!G.teams.length) G.teams=[G.nickname||"Player"];
     } else G.teams=[G.nickname||"Player"];
     G.ti=0; G.results=[];
-    audioInit(); setVol(); startRound();
+    audioInit(); setVol(); startIntro();
   };
 
   $("bPlace").onclick=attempt;
@@ -696,27 +791,15 @@ function init(){
   cv.addEventListener("pointerdown", e=>{ down=[e.clientX,e.clientY]; });
   cv.addEventListener("pointerup", e=>{
     if(!down||G.state!=="play") return;
-    if(Math.hypot(e.clientX-down[0], e.clientY-down[1])>14) return;
+    if(Math.hypot(e.clientX-down[0], e.clientY-down[1])>14) return;   // it was a camera drag
     if(!G.sel){ say(t("selectFirst")); return; }
-    if(hitDrop(e.clientX,e.clientY)) attempt();
+    if(overGhost(e.clientX,e.clientY)) attempt(); else say(t("dropOnOutline"));
   });
-  // HTML5 drop on canvas
-  cv.addEventListener("dragover", e=>{ e.preventDefault(); e.dataTransfer.dropEffect="copy";
-    const ghost=$("dragGhost"); if(ghost){ ghost.style.display="block"; ghost.style.left=(e.clientX+12)+"px"; ghost.style.top=(e.clientY+12)+"px"; }
-  });
-  cv.addEventListener("drop", e=>{
-    e.preventDefault();
-    const ghost=$("dragGhost"); if(ghost) ghost.style.display="none";
-    if(G.state!=="play") return;
-    const id=e.dataTransfer.getData("text/plain");
-    if(!id) return;
-    select(id);
-    if(hitDrop(e.clientX,e.clientY)) attempt();
-  });
-
+  $("bSkip").onclick=endIntro;
   addEventListener("keydown", e=>{
     const tag=e.target.tagName;
     if(tag==="INPUT"||tag==="SELECT") return;
+    if(G.state==="intro"&&(e.key==="Escape"||e.key==="Enter"||e.key===" ")){ e.preventDefault(); endIntro(); return; }
     if(G.state!=="play") return;
     const k=e.key, s=.12;
     if(k==="ArrowLeft") orbit(-s,0);
