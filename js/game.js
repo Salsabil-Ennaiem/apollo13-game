@@ -812,7 +812,7 @@ function attempt(){
   }
   build(id);
   G.filled[role]=id; G.used[id]=true;
-  G.log.push({step:id, t:Math.round(performance.now()-G.startTs)});
+  G.log.push({step:id, t:Math.round((G.dur-G.time)*1000)});
   G.step=Object.keys(G.filled).length;
   G.co2=Math.max(5,G.co2-CFG.stepCo2);
   // this job is done: grey out the part used and its alternatives
