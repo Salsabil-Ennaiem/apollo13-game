@@ -56,7 +56,7 @@ const G = {
   state:"nick", step:0, co2:15, time:300, dur:300, hints:0, mist:0,
   sel:null, solved:false, fired:{}, teams:["Player"], ti:0, results:[],
   used:{}, nickname:"", classCode:null, authUid:null,
-  log:[], startTs:0, lastSubmit:null, filled:{}
+  log:[], startTs:0, lastSubmit:null, filled:{}, hintLvl:{}
 };
 
 let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -177,32 +177,63 @@ window.applyLang = function applyLang(){
 };
 
 /* ===== audio ===== */
-let AC, master, nbuf, tBreath, tBeep;
+let AC, master, nbuf, pbuf, tBreath, tBeep;
 function audioInit(){
   if(AC||!(window.AudioContext||window.webkitAudioContext)) return;
   AC=new(window.AudioContext||window.webkitAudioContext)();
   master=AC.createGain(); master.gain.value=muted?0:vol; master.connect(AC.destination);
   nbuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);
   const d=nbuf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  pbuf=makePink();
   [55,110.5].forEach((f,i)=>{ const o=AC.createOscillator(),g=AC.createGain(); o.frequency.value=f; g.gain.value=i?.008:.02; o.connect(g);g.connect(master);o.start(); });
   const s=AC.createBufferSource(),f=AC.createBiquadFilter(),g=AC.createGain();
   s.buffer=nbuf;s.loop=true;f.type="lowpass";f.frequency.value=300;g.gain.value=.03;
   s.connect(f);f.connect(g);g.connect(master);s.start();
 }
 function setVol(){ if(master) master.gain.value=muted?0:vol; }
+function makePink(){                 // pink noise = softer and more natural than white noise
+  const n=AC.sampleRate*3, b=AC.createBuffer(1,n,AC.sampleRate), d=b.getChannelData(0);
+  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+  for(let i=0;i<n;i++){
+    const w=Math.random()*2-1;
+    b0=.99886*b0+w*.0555179; b1=.99332*b1+w*.0750759; b2=.96900*b2+w*.1538520;
+    b3=.86650*b3+w*.3104856; b4=.55000*b4+w*.5329522; b5=-.7616*b5-w*.0168980;
+    d[i]=(b0+b1+b2+b3+b4+b5+b6+w*.5362)*.11; b6=w*.115926;
+  }
+  return b;
+}
+/* Breathing. Tune these by ear. (The old version sounded like ocean waves because it used slow,
+   low (280-700 Hz), smooth swells of white noise. Real breath is higher, airier, faster, uneven.) */
+const BREATH={calmCycle:3.2, panicCycle:1.1, inhale:.36, pause:.05, peakCalm:.22, peakPanic:.6,
+              inHz:[1500,1500], outHz:[900,700], raspHz:[18,16]};
+function puff(t0,dur,freq,peak,inhale,l){
+  const src=AC.createBufferSource(), hp=AC.createBiquadFilter(), bp=AC.createBiquadFilter(), amp=AC.createGain();
+  src.buffer=pbuf; src.loop=true;
+  hp.type="highpass"; hp.frequency.value=320;
+  bp.type="bandpass"; bp.frequency.value=freq; bp.Q.value=.9;
+  const g=amp.gain; g.setValueAtTime(.0001,t0);
+  if(inhale){                                   // swells, then stops abruptly ("shhh-k")
+    g.linearRampToValueAtTime(peak*.35,t0+dur*.25); g.linearRampToValueAtTime(peak,t0+dur*.85); g.linearRampToValueAtTime(0,t0+dur);
+  } else {                                      // starts fast, fades slowly ("haaa")
+    g.linearRampToValueAtTime(peak*.8,t0+dur*.08); g.setTargetAtTime(0,t0+dur*.08,dur*.28);
+  }
+  src.connect(hp); hp.connect(bp); bp.connect(amp); amp.connect(master);
+  const nodes=[src];
+  if(l>.15){                                    // raspy tremor grows with CO2
+    const lfo=AC.createOscillator(), lg=AC.createGain();
+    lfo.frequency.value=BREATH.raspHz[0]+(BREATH.raspHz[1]-BREATH.raspHz[0])*l+Math.random()*4;
+    lg.gain.value=peak*.35*l; lfo.connect(lg); lg.connect(amp.gain); nodes.push(lfo);
+  }
+  nodes.forEach(n=>{ n.start(t0, n===src?Math.random()*1.5:0); n.stop(t0+dur+.15); });
+}
 function breath(){
-  if(!AC||G.state!=="play") return;
-  const l=G.co2/100, cycle=3.4-1.6*l, inDur=cycle*.38, hold=cycle*.08, outDur=cycle*.54;
-  const t0=AC.currentTime, peak=.12+.55*l;
-  const s1=AC.createBufferSource(),f1=AC.createBiquadFilter(),g1=AC.createGain();
-  s1.buffer=nbuf;f1.type="bandpass";f1.frequency.value=280+420*l;f1.Q.value=.9;
-  g1.gain.setValueAtTime(0,t0); g1.gain.linearRampToValueAtTime(peak,t0+inDur*.7); g1.gain.linearRampToValueAtTime(peak*.85,t0+inDur);
-  s1.connect(f1);f1.connect(g1);g1.connect(master); s1.start(t0);s1.stop(t0+inDur+.05);
-  const s2=AC.createBufferSource(),f2=AC.createBiquadFilter(),g2=AC.createGain();
-  s2.buffer=nbuf;f2.type="bandpass";f2.frequency.value=180+250*l;f2.Q.value=.7;
-  const tOut=t0+inDur+hold;
-  g2.gain.setValueAtTime(0,tOut); g2.gain.linearRampToValueAtTime(peak*.7,tOut+outDur*.25); g2.gain.linearRampToValueAtTime(0,tOut+outDur);
-  s2.connect(f2);f2.connect(g2);g2.connect(master); s2.start(tOut);s2.stop(tOut+outDur+.05);
+  if(!AC||G.state!=="play"||!pbuf) return;
+  const l=G.co2/100, rnd=1+(Math.random()-.5)*.16;                  // slightly irregular, like a person
+  const cycle=(BREATH.calmCycle-(BREATH.calmCycle-BREATH.panicCycle)*l)*rnd;
+  const inD=cycle*BREATH.inhale, gap=cycle*BREATH.pause, outD=cycle-inD-gap;
+  const peak=BREATH.peakCalm+(BREATH.peakPanic-BREATH.peakCalm)*l, t0=AC.currentTime;
+  puff(t0,inD,BREATH.inHz[0]+BREATH.inHz[1]*l,peak,true,l);
+  puff(t0+inD+gap,outD,BREATH.outHz[0]+BREATH.outHz[1]*l,peak*.85,false,l);
   tBreath=setTimeout(breath, cycle*1000);
 }
 function beep(){
@@ -503,7 +534,7 @@ const INTRO=[["intro1",3600],["intro2",4200],["intro3",4800],["intro4",2800]];
 const INTRO_TOTAL=INTRO.reduce((a,x)=>a+x[1],0);
 let introTimers=[], introStart=0;
 function startIntro(){
-  Object.assign(G,{step:0,co2:CFG.start,time:G.dur,sel:null,solved:false,filled:{},used:{},log:[]});
+  Object.assign(G,{step:0,co2:CFG.start,time:G.dur,sel:null,solved:false,filled:{},used:{},log:[],hintLvl:{}});
   clearPlaced(); clearGhost();
   if(marker) marker.visible=false;
   if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
@@ -527,7 +558,7 @@ function startRound(fromIntro){
   Object.assign(G,{
     step:0, co2:CFG.start, time:G.dur, hints:0, mist:0,
     sel:null, solved:false, fired:{}, used:{}, log:[],
-    startTs:performance.now(), filled:{}
+    startTs:performance.now(), filled:{}, hintLvl:{}
   });
   clearPlaced(); clearGhost();
   if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
@@ -575,7 +606,12 @@ function hint(){
   G.hints++; G.time=Math.max(0,G.time-CFG.hintCost);
   $("hl").textContent=CFG.hints-G.hints;
   const r=nextRole();
-  say(`${t("hint")} (−${CFG.hintCost}s): ${r?t("roleHints")[r]:t("keepBuilding")}`);
+  if(r){
+    // Each hint on the same job goes one level deeper: 1 = a question, 2 = the property needed, 3 = the object
+    const arr=t("roleHints")[r], lvl=Math.min(G.hintLvl[r]||0, arr.length-1);
+    G.hintLvl[r]=(G.hintLvl[r]||0)+1;
+    say(`${t("hint")} ${lvl+1}/${arr.length} (−${CFG.hintCost}s) : ${arr[lvl]}`);
+  } else say(t("keepBuilding"));
   if(G.hints>=CFG.hints) $("bHint").disabled=true;
 }
 
@@ -748,6 +784,7 @@ function init(){
   wireLangButtons();
   window.applyLang();
   $("sRed").checked=reduced;
+  const ver=$("ver"); if(ver) ver.textContent="v"+GAME_VERSION;
 
   try{ const prev=localStorage.getItem("a13_nick"); if(prev) $("sNick").value=prev; }catch(_){}
 

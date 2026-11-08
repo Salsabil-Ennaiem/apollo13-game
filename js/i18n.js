@@ -94,7 +94,12 @@ window.A13_I18N = {
     roleTaken: "That job is already done by: {item}.",
     dropOnOutline: "Drop it on the dashed outline.",
     tooEarly: { hose: "The hose needs something rigid to connect to first.", seal: "Too early. Seal the joints only after the other parts are in place." },
-    roleHints: { shape: "Something stiff must wrap the square canister and form a shell.", sleeve: "Something flexible and airtight must wrap the adapter.", hose: "Air must travel from the round port to the canister: connect the hose.", seal: "Tape every joint last to stop leaks." },
+    roleHints: {
+      shape: ["Look at the problem: a square canister and a round port. What could you wrap around the canister to give it a firm, shaped body?", "You need something stiff but bendable, like cardstock. Which items are rigid?", "Try the flight plan cover or the checklist cover."],
+      sleeve: ["Air must not leak through the walls of the adapter. What should the adapter be wrapped in?", "Look for a flexible plastic bag that holds air.", "Try the LCG bag or the stowage bag."],
+      hose: ["The air has to travel somewhere. What links the round port to the canister?", "You need a flexible tube that can bend between the two.", "Use the suit hose, from the canister to the port."],
+      seal: ["Even a small gap lets CO₂ escape. How do you close every joint?", "Something sticky that holds plastic and cardboard together.", "Use the duct tape on every joint, last."]
+    },
     roles: { shape: "Rigid adapter", sleeve: "Airtight sleeve", hose: "Air path (hose)", seal: "Seal (tape)" },
     sameAsNasa: "Same parts as NASA’s real “mailbox”.",
     altSolution: "A different combination from NASA’s, valid in this game.",
@@ -197,7 +202,12 @@ window.A13_I18N = {
     roleTaken: "Ce rôle est déjà rempli par : {item}.",
     dropOnOutline: "Déposez-la sur le contour en pointillés.",
     tooEarly: { hose: "Le tuyau a d'abord besoin d'une pièce rigide où se raccorder.", seal: "Trop tôt. Scellez les joints seulement quand les autres pièces sont en place." },
-    roleHints: { shape: "Une pièce rigide doit envelopper la cartouche carrée et former une coque.", sleeve: "Une pièce souple et étanche doit envelopper l'adaptateur.", hose: "L'air doit aller de l'orifice rond à la cartouche : raccordez le tuyau.", seal: "Collez chaque joint en dernier pour éviter les fuites." },
+    roleHints: {
+      shape: ["Observez le problème : une cartouche carrée et un orifice rond. Que pourriez-vous enrouler autour de la cartouche pour lui donner un corps ferme et façonné ?", "Il faut quelque chose de rigide mais pliable, comme du carton. Quels objets sont rigides ?", "Essayez la couverture du plan de vol ou celle de la checklist."],
+      sleeve: ["L'air ne doit pas fuir par les parois de l'adaptateur. Dans quoi faut-il l'envelopper ?", "Cherchez un sac plastique souple qui retient l'air.", "Essayez le sac LCG ou le sac de rangement."],
+      hose: ["L'air doit circuler quelque part. Qu'est-ce qui relie l'orifice rond à la cartouche ?", "Il faut un tube souple capable de se plier entre les deux.", "Utilisez le tuyau de combinaison, de la cartouche vers l'orifice."],
+      seal: ["Même une petite fente laisse échapper le CO₂. Comment fermer chaque joint ?", "Quelque chose d'adhésif qui tient le plastique et le carton ensemble.", "Utilisez le ruban adhésif sur chaque joint, en dernier."]
+    },
     roles: { shape: "Adaptateur rigide", sleeve: "Gaine étanche", hose: "Circuit d'air (tuyau)", seal: "Étanchéité (ruban)" },
     sameAsNasa: "Mêmes pièces que le vrai « mailbox » de la NASA.",
     altSolution: "Une combinaison différente de celle de la NASA, valide dans ce jeu.",
