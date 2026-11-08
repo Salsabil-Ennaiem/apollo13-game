@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self'; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <title>Apollo 13: Fix the Air</title>
-<link rel="stylesheet" href="css/styles.css?v=2.6">
+<link rel="stylesheet" href="css/styles.css?v=2.7">
 </head>
 <body>
 <canvas id="cv" tabindex="0" aria-label="3D cabin"></canvas>
@@ -15,22 +15,33 @@
 <div id="hud" class="hide">
   <div class="bar">
     <span><span id="tPlayer">Player</span>: <b id="tn">-</b></span>
-    <span>⏱ <b id="tm">5:00</b></span>
+    <span>⏱ <b id="tm">3:00</b></span>
     <div class="meter">
       <div>CO₂ <b id="cp">15%</b> · <b id="cs">SAFE</b></div>
       <div class="track" role="progressbar" aria-label="CO2" aria-valuemin="0" aria-valuemax="100" aria-valuenow="15"><div id="fill"></div></div>
     </div>
-    <button id="bHint" title="Hint">💡 <span id="tHint">Hint</span> <span id="hl">3</span></button>
-    <button id="bPause" aria-label="Pause">⏸</button>
-    <button id="bView" aria-label="Reset view">🎯</button>
-    <button id="bMute" aria-pressed="false" aria-label="Mute all" title="Mute all">🔊</button>
-    <button id="bMuteRadioHud" aria-pressed="false" aria-label="Mute radio" title="Radio">📻</button>
-    <button id="bMuteBreathHud" aria-pressed="false" aria-label="Mute breath" title="Breath">💨</button>
-    <button id="bFs" aria-label="Fullscreen">⛶</button>
-    <span class="lang-bar">
-      <button type="button" id="langEN" aria-pressed="true">EN</button>
-      <button type="button" id="langFR" aria-pressed="false">FR</button>
-    </span>
+    <button id="bHint" class="hud-ico" aria-label="Hint (-15 s)">
+      <span class="ico">💡</span><span class="lbl" id="tHint">Hint</span><span class="cost">−15s</span><span id="hl" class="cnt">3</span>
+    </button>
+    <button id="bResearch" class="hud-ico" aria-label="Research (-20 s)" aria-expanded="false" aria-controls="researchPanel">
+      <span class="ico">🔍</span><span class="lbl" id="tResearch">Research</span><span class="cost">−20s</span>
+    </button>
+    <div class="menu-wrap">
+      <button id="bMore" class="hud-ico" aria-haspopup="true" aria-expanded="false" aria-controls="hudMenu" aria-label="More" title="More">⋯</button>
+      <div id="hudMenu" class="hud-menu hide" role="menu">
+        <button id="bPause" role="menuitem" aria-label="Pause" title="Pause">⏸</button>
+        <button id="bView" role="menuitem" aria-label="Reset view" title="Reset view">🎯</button>
+        <button id="bFs" role="menuitem" aria-label="Fullscreen" title="Fullscreen">⛶</button>
+        <button id="bMute" role="menuitem" aria-pressed="false" aria-label="Mute all" title="Mute all">🔊</button>
+        <button id="bMuteRadioHud" role="menuitem" aria-pressed="false" aria-label="Mute radio" title="Radio">📻</button>
+        <button id="bMuteBreathHud" role="menuitem" aria-pressed="false" aria-label="Mute breath" title="Breath">💨</button>
+        <input id="sVolHud" type="range" min="0" max="1" step=".05" value=".6" aria-label="Volume">
+        <span class="lang-bar">
+          <button type="button" id="langEN" aria-pressed="true">EN</button>
+          <button type="button" id="langFR" aria-pressed="false">FR</button>
+        </span>
+      </div>
+    </div>
   </div>
   <div id="telemetry" class="telemetry" aria-live="polite">
     <span class="tel-item" data-role="shape"><i></i><span id="telShape">Body: —</span></span>
@@ -63,7 +74,6 @@
         <span class="tool-ic">📁</span>
         <span id="tFolderLabel">Reference folder</span>
       </button>
-      <button id="bPlace" class="pri">Place</button>
     </div>
     <div id="invPanel" class="panel hide" role="region" aria-label="Inventory">
       <div class="panel-head">
@@ -71,6 +81,7 @@
         <button type="button" id="bBoxClose" class="panel-x" aria-label="Close">✕</button>
       </div>
       <div id="inv" aria-label="Inventory"></div>
+      <div class="panel-foot"><button id="bPlace" class="pri">Place</button></div>
     </div>
     <div id="folderPanel" class="panel hide" role="region" aria-label="Reference photos">
       <div class="panel-head">
@@ -78,6 +89,21 @@
         <button type="button" id="bFolderClose" class="panel-x" aria-label="Close">✕</button>
       </div>
       <p id="tFolderHint" class="mu" style="margin:0 0 8px;font-size:.85rem"></p>
+      <div class="folder-grid">
+        <figure><img src="img/mat-bag.png" alt="Plastic bag"><figcaption id="capBag">Plastic bag</figcaption></figure>
+        <figure><img src="img/mat-cardboard.png" alt="Cardboard cover"><figcaption id="capCard">Cardboard cover</figcaption></figure>
+        <figure><img src="img/mat-tape.png" alt="Duct tape"><figcaption id="capTape">Duct tape</figcaption></figure>
+        <figure><img src="img/mat-hose.png" alt="Suit hose"><figcaption id="capHoseM">Suit hose</figcaption></figure>
+        <figure><img src="img/mat-sock.png" alt="Sock"><figcaption id="capSock">Sock</figcaption></figure>
+        <figure><img src="img/mat-canister-square.png" alt="Square LiOH canister"><figcaption id="capCanSq">Square LiOH canister</figcaption></figure>
+        <figure><img src="img/mat-canister-round.png" alt="Round LiOH canister"><figcaption id="capCanRd">Round LiOH canister</figcaption></figure>
+      </div>
+    </div>
+    <div id="researchPanel" class="panel hide" role="region" aria-label="Research">
+      <div class="panel-head">
+        <strong id="tResearchTitle">Research: the real adapter</strong>
+        <button type="button" id="bResearchClose" class="panel-x" aria-label="Close">✕</button>
+      </div>
       <div class="folder-grid">
         <figure><img src="img/cabin-install.jpg" alt="Adapter in the LM cabin"><figcaption id="capCabin">In the cabin</figcaption></figure>
         <figure><img src="img/nasm-side.jpg" alt="NASM side view"><figcaption id="capSide">Side view</figcaption></figure>
@@ -110,10 +136,12 @@
     </div>
     <p id="tNickIntro"></p>
     <div class="row"><label id="tNickLabel">Nickname<input id="sNick" type="text" maxlength="16" autocomplete="off"></label></div>
-    <div class="row"><label id="tClassLabel">Class<input id="sClass" type="text" maxlength="8" autocomplete="off"></label></div>
+    <details class="more"><summary id="tMore">More</summary>
+      <div class="row"><label id="tClassLabel">Class<input id="sClass" type="text" maxlength="8" autocomplete="off"></label></div>
+      <p id="tNickLegal" class="mu" style="margin:8px 0 0;font-size:.8rem"></p>
+    </details>
     <p id="nickErr" class="err" role="alert"></p>
     <button id="bNick" class="pri" style="width:100%">Continue</button>
-    <p id="tNickLegal" class="mu" style="margin-top:12px;font-size:.85rem"></p>
     <p class="mu" style="font-size:.75rem;margin:6px 0 0">Build <span id="ver">-</span></p>
   </div>
 </div>
@@ -132,31 +160,35 @@
     <div class="row">
       <label id="tTimeLabel">Time
         <select id="sDur">
-          <option value="180" id="opt3">3 min</option>
-          <option value="300" selected id="opt5">5 min</option>
+          <option value="180" selected id="opt3">3 min</option>
+          <option value="300" id="opt5">5 min</option>
           <option value="480" id="opt8">8 min</option>
         </select>
       </label>
-      <label id="tTeamsLabel">Teams<input id="sTeams" type="text" maxlength="90" value="" autocomplete="off"></label>
     </div>
-    <div class="row">
-      <label id="tVolLabel">Master <input id="sVol" type="range" min="0" max="1" step=".05" value=".6"></label>
-      <label style="flex-direction:row;align-items:center"><input id="sRed" type="checkbox"> <span id="tReduced">Reduced</span></label>
-    </div>
-    <div class="row audio-chans">
-      <label id="tVolRadioLabel">Radio (real Apollo 13)
-        <span class="chan-row">
-          <button type="button" id="bMuteRadio" aria-pressed="false" title="Mute radio">🔊</button>
-          <input id="sVolRadio" type="range" min="0" max="1" step=".05" value=".85">
-        </span>
-      </label>
-      <label id="tVolBreathLabel">Breathing
-        <span class="chan-row">
-          <button type="button" id="bMuteBreath" aria-pressed="false" title="Mute breathing">🔊</button>
-          <input id="sVolBreath" type="range" min="0" max="1" step=".05" value=".45">
-        </span>
-      </label>
-    </div>
+    <details class="more"><summary id="tSettings">Settings</summary>
+      <div class="row">
+        <label id="tTeamsLabel">Teams<input id="sTeams" type="text" maxlength="90" value="" autocomplete="off"></label>
+      </div>
+      <div class="row">
+        <label id="tVolLabel">Master <input id="sVol" type="range" min="0" max="1" step=".05" value=".6"></label>
+        <label style="flex-direction:row;align-items:center"><input id="sRed" type="checkbox"> <span id="tReduced">Reduced</span></label>
+      </div>
+      <div class="row audio-chans">
+        <label id="tVolRadioLabel">Radio
+          <span class="chan-row">
+            <button type="button" id="bMuteRadio" aria-pressed="false" title="Mute radio">🔊</button>
+            <input id="sVolRadio" type="range" min="0" max="1" step=".05" value=".85">
+          </span>
+        </label>
+        <label id="tVolBreathLabel">Breathing
+          <span class="chan-row">
+            <button type="button" id="bMuteBreath" aria-pressed="false" title="Mute breathing">🔊</button>
+            <input id="sVolBreath" type="range" min="0" max="1" step=".05" value=".45">
+          </span>
+        </label>
+      </div>
+    </details>
     <p id="tWarn" class="warn"></p>
     <p class="mu"><span id="tPlayingAs">Playing as:</span> <b id="dispNick">-</b> · <a id="tViewBoard" href="leaderboard.html" target="_blank" rel="noopener">Board</a></p>
     <button id="bStart" class="pri" style="width:100%">Start</button>
@@ -250,7 +282,7 @@
 try{ if(window.matchMedia("(max-width:600px)").matches){ var _s=document.querySelector(".side"); if(_s) _s.removeAttribute("open"); } }catch(_){}
 </script>
 <script src="config.js?v=2.4"></script>
-<script src="js/i18n.js?v=2.4"></script>
+<script src="js/i18n.js?v=2.5"></script>
 <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
 <script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
@@ -263,7 +295,7 @@ if(typeof THREE==="undefined"||!THREE.OrbitControls){
   });
 }
 </script>
-<script type="module" src="js/game.js?v=2.8"></script>
+<script type="module" src="js/game.js?v=2.9"></script>
 
 <div id="imgLightbox" class="ov hide" role="dialog" aria-modal="true">
   <button type="button" id="lbClose" class="lb-close" aria-label="Close">✕</button>

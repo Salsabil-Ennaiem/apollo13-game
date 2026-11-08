@@ -884,15 +884,20 @@ body.dragging #inv {
         margin-left: auto
     }
 
+    .bar #bResearch,
+    .bar .menu-wrap {
+        order: 1
+    }
+
     .bar .meter {
         order: 2;
         flex: 1 1 100%;
         min-width: 0
     }
 
-    .bar>button:not(#bHint),
-    .bar>.lang-bar {
-        order: 3
+    .hud-menu {
+        right: 0;
+        max-width: calc(100vw - 24px)
     }
 
     .track {
@@ -959,4 +964,126 @@ body.dragging #inv {
         padding: .35rem .6rem;
         font-size: .85rem
     }
+}
+
+/* ===== v2.7: HUD icons (Hint / Research), ⋯ menu, Place inside the box, folded settings ===== */
+.hud-ico {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 40px;
+    min-height: 40px;
+    padding: .2rem .5rem
+}
+
+/* label only on hover / keyboard focus; the icon and the cost badge are always visible */
+.hud-ico .lbl {
+    display: none;
+    font-size: .85rem
+}
+
+.hud-ico:hover .lbl,
+.hud-ico:focus-visible .lbl {
+    display: inline
+}
+
+.hud-ico .cost {
+    font-size: .7rem;
+    font-weight: 700;
+    color: #ffb020;
+    background: #2a1d05;
+    border: 1px solid #ffb02066;
+    border-radius: 8px;
+    padding: 0 5px;
+    line-height: 1.4
+}
+
+.hud-ico .cnt {
+    font-size: .75rem;
+    font-weight: 700;
+    color: var(--mu)
+}
+
+.hud-ico:disabled {
+    opacity: .45
+}
+
+.menu-wrap {
+    position: relative;
+    margin-left: auto
+}
+
+.hud-menu {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    z-index: 20;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    width: 220px;
+    padding: 8px;
+    background: #111827;
+    border: 1px solid var(--ln);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px #000a
+}
+
+.hud-menu.hide {
+    display: none
+}
+
+.hud-menu button {
+    min-width: 40px;
+    min-height: 40px
+}
+
+.hud-menu input[type=range] {
+    flex: 1 1 100%
+}
+
+.hud-menu button[aria-pressed=true] {
+    opacity: .5
+}
+
+.panel-foot {
+    position: sticky;
+    bottom: -10px;
+    margin: 8px -10px -10px;
+    padding: 8px 10px;
+    background: #111827;
+    border-radius: 0 0 14px 14px;
+    z-index: 3
+}
+
+.panel-foot button {
+    width: 100%;
+    min-height: 44px
+}
+
+details.more {
+    margin: 8px 0
+}
+
+details.more>summary {
+    cursor: pointer;
+    color: var(--mu);
+    min-height: 32px
+}
+
+.steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px
+}
+
+.steps div {
+    font-size: .85rem;
+    line-height: 1.3
+}
+
+.steps div {
+    min-width: 0
 }

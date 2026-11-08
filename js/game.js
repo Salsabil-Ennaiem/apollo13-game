@@ -15,7 +15,7 @@ const t = (k) => window.t(k);
 const tItem = (id) => window.tItem(id);
 
 /* ===== constants ===== */
-const CFG = { start:15, hints:3, hintCost:15, mistakeCo2:3, stepCo2:8 };
+const CFG = { start:15, hints:3, hintCost:15, researchCost:20, mistakeCo2:3, stepCo2:8 };
 const DIM = {
   canister: { w:18.4, h:22.9, d:18.4, src:"Smithsonian NASM A19760747000" },
   port: { r:7.5, src:"Approx. LM round port" },
@@ -53,7 +53,7 @@ const CP = {x:-28, y:-2, z:18};   // centre of the canister on the bench
 const $ = id => document.getElementById(id);
 const clamp = (v,a,b) => Math.min(b, Math.max(a,v));
 const G = {
-  state:"nick", step:0, co2:15, time:300, dur:300, hints:0, mist:0,
+  state:"nick", step:0, co2:15, time:180, dur:180, hints:0, mist:0,
   sel:null, solved:false, fired:{}, teams:["Player"], ti:0, results:[],
   used:{}, nickname:"", classCode:null, authUid:null,
   log:[], startTs:0, lastSubmit:null, filled:{}, hintLvl:{}
@@ -157,6 +157,10 @@ window.applyLang = function applyLang(){
   setText("tInvTitle", t("invTitle"));
   setText("tFolderTitle", t("folderTitle"));
   setText("tFolderHint", t("folderHint"));
+  setText("tResearch", t("research"));
+  setText("tResearchTitle", t("researchTitle"));
+  setText("tMore", t("more")); setText("tSettings", t("settings"));
+  ["capBag","capCard","capTape","capHoseM","capSock","capCanSq","capCanRd"].forEach(k=>setText(k,t(k)));
   setText("capCabin", t("capCabin"));
   setText("capSide", t("capSide"));
   setText("capHose", t("capHose"));
@@ -200,9 +204,9 @@ function makeAudioEl(src, loop){
 }
 function audioInit(){
   if(!breathLoopEl){
-    breathLoopEl=makeAudioEl("audio/breath-loop.ogg", true);
-    breathCritEl=makeAudioEl("audio/breath-critical.ogg", true);
-    radioEl=makeAudioEl("audio/Apollo13-wehaveaproblem.ogg", true); // loop full track as mission radio
+    breathLoopEl=makeAudioEl("audio/breath-loop.mp3", true);
+    breathCritEl=makeAudioEl("audio/breath-critical.mp3", true);
+    radioEl=makeAudioEl("audio/Apollo13-wehaveaproblem.mp3", true); // loop full track as mission radio
   }
   if(AC||!(window.AudioContext||window.webkitAudioContext)) return;
   AC=new(window.AudioContext||window.webkitAudioContext)();
@@ -477,7 +481,7 @@ function initScene(){
   controls=new THREE.OrbitControls(camera, renderer.domElement);
   controls.target.set(-8,2,10);
   controls.enableDamping=true;
-  controls.minDistance=30; controls.maxDistance=120;
+  controls.minDistance=30; controls.maxDistance=150;
   controls.maxPolarAngle=Math.PI*.82;
   scene.add(new THREE.AmbientLight(0x6a7a99,.4));
   light=new THREE.PointLight(0xfff1d6,1.1,350); light.position.set(0,30,40); scene.add(light);
@@ -630,7 +634,13 @@ function zoom(f){
   o.setLength(clamp(o.length()*f,25,160));
   camera.position.copy(controls.target).add(o); controls.update();
 }
-function resetView(){ camera.position.set(0,8,70); controls.target.set(-8,2,10); controls.update(); }
+function resetView(){
+  // Portrait phones are narrow: pull the camera back so the whole cabin fits
+  const portrait=innerWidth/Math.max(1,innerHeight)<.8;
+  const k=portrait?1.45:1;
+  camera.position.set(0, portrait?14:8, 70*k);
+  controls.target.set(-8,2,10); controls.update();
+}
 
 /* ===== UI / inventory + drag (pointer events: mouse, pen and touch) ===== */
 let drag=null, suppressClick=false;
@@ -782,11 +792,20 @@ function startBriefing(){
   }
 }
 
+function openMenu(){ $("hudMenu").classList.remove("hide"); $("bMore").setAttribute("aria-expanded","true"); }
+function closeMenu(){ const m=$("hudMenu"); if(!m||m.classList.contains("hide")) return; m.classList.add("hide"); $("bMore").setAttribute("aria-expanded","false"); }
+function openPanel(which){
+  [["inv","invPanel","bBox"],["folder","folderPanel","bFolder"],["research","researchPanel","bResearch"]].forEach(([k,p,b])=>{
+    const on=which===k; const pe=$(p), be=$(b);
+    if(pe) pe.classList.toggle("hide",!on);
+    if(be) be.setAttribute("aria-expanded",String(on));
+  });
+}
 function startRound(fromIntro){
   Object.assign(G,{
     step:0, co2:CFG.start, time:G.dur, hints:0, mist:0,
     sel:null, solved:false, fired:{}, used:{}, log:[],
-    startTs:performance.now(), filled:{}, hintLvl:{}
+    startTs:performance.now(), filled:{}, hintLvl:{}, researched:false
   });
   clearPlaced(); clearGhost();
   if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
@@ -798,6 +817,7 @@ function startRound(fromIntro){
   $("tn").textContent=G.teams[G.ti];
   $("hl").textContent=CFG.hints;
   $("bHint").disabled=false;
+  closeMenu(); openPanel(null);
   updateTelemetry();
   setState("play");
   say(t("missionStart"), !fromIntro);
@@ -1089,25 +1109,27 @@ function init(){
     addEventListener("keydown", e=>{ if(e.key==="Escape"&&lb&&!lb.classList.contains("hide")) lb.classList.add("hide"); });
   }
 
-  // Parts box + reference folder panels
-  function openPanel(which){
-    const invP=$("invPanel"), folP=$("folderPanel"), bBox=$("bBox"), bFol=$("bFolder");
-    const openInv=which==="inv", openFol=which==="folder";
-    if(invP) invP.classList.toggle("hide", !openInv);
-    if(folP) folP.classList.toggle("hide", !openFol);
-    if(bBox) bBox.setAttribute("aria-expanded", String(openInv));
-    if(bFol) bFol.setAttribute("aria-expanded", String(openFol));
-  }
-  $("bBox")&&($("bBox").onclick=()=>{
-    const open=$("invPanel")&&$("invPanel").classList.contains("hide");
-    openPanel(open?"inv":null);
-  });
-  $("bFolder")&&($("bFolder").onclick=()=>{
-    const open=$("folderPanel")&&$("folderPanel").classList.contains("hide");
-    openPanel(open?"folder":null);
-  });
+  // Parts box + reference folder + research panels
+  $("bResearchClose")&&($("bResearchClose").onclick=()=>openPanel(null));
+  $("bBox")&&($("bBox").onclick=()=>openPanel($("invPanel").classList.contains("hide")?"inv":null));
+  $("bFolder")&&($("bFolder").onclick=()=>openPanel($("folderPanel").classList.contains("hide")?"folder":null));
   $("bBoxClose")&&($("bBoxClose").onclick=()=>openPanel(null));
   $("bFolderClose")&&($("bFolderClose").onclick=()=>openPanel(null));
+  $("bResearch").onclick=()=>{
+    const opening=$("researchPanel").classList.contains("hide");
+    if(opening&&G.state==="play"&&!G.researched&&!G.solved){      // first look costs time; re-opening is free
+      G.researched=true; G.time=Math.max(0,G.time-CFG.researchCost);
+      say(`${t("research")} (−${CFG.researchCost}s)`);
+    }
+    openPanel(opening?"research":null);
+  };
+  // ⋯ menu: closes on outside tap, second tap on ⋯, scroll/zoom/orbit of the cabin, Escape
+  $("bMore").onclick=()=>{ $("hudMenu").classList.contains("hide")?openMenu():closeMenu(); };
+  document.addEventListener("pointerdown",e=>{ if(!$("hudMenu").classList.contains("hide")&&!e.target.closest(".menu-wrap")) closeMenu(); });
+  ["wheel","touchmove"].forEach(ev=>$("cv").addEventListener(ev,closeMenu,{passive:true}));
+  addEventListener("keydown",e=>{ if(e.key==="Escape") closeMenu(); });
+  const sVolHud=$("sVolHud");
+  if(sVolHud) sVolHud.oninput=()=>{ vol=+sVolHud.value; const m=$("sVol"); if(m) m.value=vol; applyChannelVol(); };
   $("bHint").onclick=hint;
   $("bPause").onclick=pause;
   $("bResume").onclick=resume;
