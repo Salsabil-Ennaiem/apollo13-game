@@ -86,13 +86,16 @@ leaderboard.html                  Class / public scoreboard page
 config.js                         Supabase URL + publishable key + GAME_VERSION
 css/styles.css                    Look and layout
 js/i18n.js                        English + French text
-js/game.js                        Gameplay, 3D cabin, sound, scoring
+js/game.js                        Gameplay, 3D cabin, sound, scoring, tutorial
+img/mat-*.png                     Photos of the real objects (Reference folder)
+img/cabin-install.jpg, nasm-*.jpg Historical photos of the final adapter (Research)
+audio/*.mp3                       Radio + breathing loops (MP3: plays on iPhone / Safari)
 supabase/functions/submit-score/  Score submission Edge Function (Deno)
 ```
 
 The publishable key in `config.js` is safe to expose: it can only read the public leaderboard view. There are **no secrets** in this repository.
 
----
+* * *
 
 ## Putting it online
 
@@ -135,16 +138,40 @@ Any equivalent tool is fine (`npx serve`, VS Code Live Server, etc.). Python is 
 
 ## In-game controls
 
-| Action | How |
-|--------|-----|
-| Rotate | Drag on the cabin |
-| Zoom | Scroll / pinch, or `+` / `-` |
-| Place a part | Drag from the inventory into the cabin, or select then click the cabin |
-| Hint / pause / language | Buttons on screen (`P` to pause; **EN** / **FR** always available) |
+| Action                  | How                                                                                       |
+|-------------------------|-------------------------------------------------------------------------------------------|
+| Rotate / zoom           | Drag on the cabin; scroll or pinch, or `+` / `-`                                          |
+| Place a part            | Open the **Parts box**, select a part, then **Place** (inside the box) or tap the outline |
+| Reference folder        | Photos of the real objects (free)                                                         |
+| 💡 Hint                 | Costs 15 s and one of 3 hints; the label shows on hover                                   |
+| 🔍 Research             | Photos of the real finished adapter; costs 20 s the first time each round                 |
+| ⋯ menu                  | Pause (`P`), reset view, fullscreen, mute all / radio / breath, volume, EN / FR, tutorial |
+
+The ⋯ menu closes when you tap outside it, tap ⋯ again, press Esc, or scroll / drag the cabin.
 
 The cabin starts like the real problem: square canister present, round port empty. Build the adapter around it.
 
----
+### Tutorial
+
+On the first round, a skippable coach-mark tutorial points to the brief, the Parts box, a part, the folder and Place. The timer is frozen while it is open. Replay it from ❓ in the ⋯ menu. It never reveals the solution.
+
+### Start-screen options
+
+| Option          | What it does                                                                                           |
+|-----------------|--------------------------------------------------------------------------------------------------------|
+| Time            | 3 min (default), 5 min or 8 min                                                                        |
+| Teams (Settings)| Optional local hot-seat mode: comma-separated team names (max 4). Teams play one after another and the end screen compares them. Team games are **not** sent to the online leaderboard. Leave empty for a ranked solo run. |
+| Reduced effects | Off by default. Turns off blur, flicker and sway for sensitive players.                                |
+
+### Class codes
+
+A class code (4–8 letters/digits, optional) groups scores into a private board. Enter it on the nickname screen under **More**. On `leaderboard.html`, type the code to filter, or share a link like `leaderboard.html?class=ABCD`. The Supabase `leaderboard` view must expose the `class_code` column.
+
+### Audio
+
+Audio is MP3 only (Safari and iOS cannot play Ogg). Keep the file names `breath-loop.mp3`, `breath-critical.mp3` and `Apollo13-wehaveaproblem.mp3`.
+
+* * *
 
 ## Privacy
 

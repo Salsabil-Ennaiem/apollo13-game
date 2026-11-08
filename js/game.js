@@ -59,7 +59,8 @@ const G = {
   log:[], startTs:0, lastSubmit:null, filled:{}, hintLvl:{}
 };
 
-let reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let reduced = false ;
+//matchMedia("(prefers-reduced-motion: reduce)").matches;
 let muted = false, vol = .6;
 
 function fail(e){
