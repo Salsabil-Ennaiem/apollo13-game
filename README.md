@@ -1,52 +1,94 @@
-# Apollo 13: Fix the Air – Classroom Game + Public Leaderboard
+# Apollo 13: Fix the Air
 
-A single-file (plus one leaderboard page) educational game about the Apollo 13 CO₂ emergency.
+**Educational browser game** for classrooms: students experience the Apollo 13 CO₂ emergency and rebuild the improvised “mailbox” adapter that let a **square** Command Module canister work with the Lunar Module’s **round** port.
 
-## Files
+This repository holds the **complete static web app** — open it in a browser, share a link, or project it in class. No install, no accounts required to play offline.
 
-| File | Purpose |
-|------|---------|
-| `index.html` | The full game (3D, sound, stress effects, nickname, scoring) |
-| `leaderboard.html` | Public / classroom projector leaderboard |
-| `schema.sql` | Supabase tables, view, RLS, indexes |
-| `supabase/functions/submit-score/index.ts` | Edge Function that validates the event log and writes scores |
-| `SETUP.md` | Step-by-step beginner guide |
-| `TEST_PLAN.md` | Checklist for testing before class |
+**Languages:** English / Français
 
-## Realism notes
+---
 
-- Canister dimensions taken from the Smithsonian National Air and Space Museum object **NASM A19760747000**:
-  - Main body: **18.4 × 18.4 × 22.9 cm**
-  - Hose: **132.1 × 3.8 cm**
-- Other items use clearly marked approximations.
-- 1 Three.js unit = 1 cm.
+## What this repository is for
 
-## Quick start (local, no leaderboard)
+| Role | Description |
+|------|-------------|
+| **Classroom activity** | Timed mission: rising CO₂, limited hints, inventory of real-inspired parts |
+| **History / STEM** | Based on the real Apollo 13 fix; sizes reference Smithsonian NASM A19760747000 |
+| **Projector / shared play** | Optional nickname + public leaderboard page for the whole class |
+| **Static website** | Pure HTML / CSS / JS — host anywhere that serves files over HTTPS |
 
-Just open `index.html` in a modern browser. Internet is required only once to load Three.js and (optionally) Supabase.
+It is **not** a native app, not a Node backend, and not a package you install with npm to “run the game.” The game *is* the web pages in this folder.
 
-## Quick start (with public scores)
+---
 
-1. Follow **SETUP.md** (create Supabase project → run schema → deploy function → paste keys → host on GitHub Pages).
-2. Share the game URL and the leaderboard URL (or a QR code).
+## How people use it
 
-## Hosting (free)
+1. **Teacher / host** puts the site online (or on the school network).
+2. **Students** open the URL on laptops, Chromebooks, or phones.
+3. They pick a language, enter a nickname (optional for ranking), and play.
+4. Optional: open `leaderboard.html` on a projector.
 
-- GitHub Pages or Cloudflare Pages / Netlify Drop for the static files.
-- Supabase free tier for the database + Edge Function.
+---
 
-## Security summary
+## Files that make up the game
 
-- Client sends only an **event log** (step + relative timestamp), never a trusted score.
-- Edge Function recomputes the score, checks order, timing, rate limits, and only then inserts.
-- Row Level Security: anonymous users can only **SELECT** the leaderboard view.
-- No emails, no real names, no tracking cookies beyond Supabase anonymous auth.
-- CSP restricts `connect-src` to your Supabase project.
+```
+index.html          Main game page
+leaderboard.html    Class / public scoreboard page
+config.js           Optional online leaderboard settings only
+css/styles.css      Look and layout
+js/i18n.js          English + French text
+js/game.js          Gameplay, 3D cabin, sound, scoring
+```
 
-## Customisation
+For normal classroom use you only need these. Leave `config.js` placeholders unchanged to stay fully offline.
 
-See the comment block at the top of `index.html` and the original code guide. All difficulty numbers live in the `CFG` object; dimensions live in `DIM`.
+---
 
-## Licence / credit
+## Putting it online (recommended)
 
-Game concept and educational use of the Apollo 13 “mailbox” story. Dimensions from Smithsonian / NASA public sources. Use freely in classrooms.
+Upload **only the game files** above to any static host:
+
+- **GitHub Pages** — repo Settings → Pages → deploy from branch  
+- **Cloudflare Pages** or **Netlify** — drag-and-drop the folder  
+
+Students then use a normal `https://…` link (or a QR code). That is the intended way to “run” this project.
+
+---
+
+## Trying it on your own computer (optional)
+
+Browsers block some features when you double-click `index.html` (`file://`). To test on your machine, serve the folder with any static file server, for example:
+
+```bash
+python -m http.server 8080
+```
+
+Then open `http://localhost:8080`.  
+Any equivalent tool is fine (`npx serve`, VS Code Live Server, etc.). Python is only one convenient option — it is **not** part of the game.
+
+---
+
+## In-game controls
+
+| Action | How |
+|--------|-----|
+| Rotate | Drag on the cabin |
+| Zoom | Scroll / pinch, or `+` / `-` |
+| Place a part | Drag from the inventory into the cabin, or select then click the cabin |
+| Hint / pause / language | Buttons on screen (`P` to pause; **EN** / **FR** always available) |
+
+The cabin starts like the real problem: square canister present, round port empty. Build the adapter around it.
+
+---
+
+## Optional online scores
+
+By default nothing is stored online.  
+If you want a shared leaderboard, put your free Supabase project URL and **anon** key in `config.js`. Without that, the game still works fully offline.
+
+---
+
+## Realism
+
+Canister and hose dimensions follow the Smithsonian object **NASM A19760747000**. Other sizes are approximations marked in the in-game facts panel.
