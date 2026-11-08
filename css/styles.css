@@ -851,3 +851,112 @@ body.dragging #inv {
     font-size: 1.3rem;
     line-height: 1
 }
+
+
+/* ==========================================================================
+   FIX: compact phone layout (<=600px)
+   - top bar goes from ~40% of the screen to ~20%
+   - the Briefing panel flows under the telemetry instead of being pinned at
+     bottom:150px, so it no longer overlaps Parts box / Reference folder / Place
+   Desktop and tablets are untouched.
+   ========================================================================== */
+@media(max-width:600px) {
+
+    /* --- top bar: row 1 = player + timer + hint, row 2 = CO2 meter, row 3 = icon buttons --- */
+    .bar {
+        gap: 4px 6px;
+        padding: 6px 8px
+    }
+
+    .bar button {
+        min-width: 36px;
+        min-height: 36px;
+        padding: .2rem .4rem;
+        font-size: .95rem
+    }
+
+    #tm {
+        font-size: 1.25rem
+    }
+
+    .bar #bHint {
+        order: 1;
+        margin-left: auto
+    }
+
+    .bar .meter {
+        order: 2;
+        flex: 1 1 100%;
+        min-width: 0
+    }
+
+    .bar>button:not(#bHint),
+    .bar>.lang-bar {
+        order: 3
+    }
+
+    .track {
+        height: 10px
+    }
+
+    /* --- telemetry strip: smaller pills --- */
+    .telemetry {
+        gap: 4px;
+        margin-top: 4px;
+        padding: 4px 6px;
+        font-size: .72rem
+    }
+
+    .tel-item {
+        padding: 1px 7px
+    }
+
+    /* --- Briefing panel: in the flow under the telemetry, never over the bottom buttons --- */
+    .side {
+        position: static;
+        margin-top: 6px;
+        width: min(300px, 80vw);
+        max-height: 24vh;
+        max-height: 24dvh;
+        font-size: .85rem
+    }
+
+    #ban {
+        top: calc(max(8px, env(safe-area-inset-top)) + 200px);
+        font-size: .85rem;
+        padding: 4px 12px
+    }
+
+    /* --- bottom area: compact subtitle, tool buttons and parts panel --- */
+    #sub {
+        font-size: .9rem;
+        padding: 4px 10px;
+        min-height: 0
+    }
+
+    .tool-btn {
+        gap: 5px;
+        padding: .3rem .55rem;
+        min-height: 40px;
+        font-size: .85rem
+    }
+
+    .tool-btn .tool-ic {
+        font-size: 1.1rem
+    }
+
+    #bPlace {
+        min-height: 40px;
+        padding: .3rem .9rem
+    }
+
+    .panel {
+        max-height: 34vh;
+        max-height: 34dvh
+    }
+
+    #inv button {
+        padding: .35rem .6rem;
+        font-size: .85rem
+    }
+}
