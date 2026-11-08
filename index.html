@@ -64,43 +64,49 @@ table{width:100%;border-collapse:collapse}td,th{padding:4px 6px;border-bottom:1p
  </div>
  <div id="ban" class="hide" role="alert">⚠ CO₂ CRITICAL</div>
  <details class="side" open>
-  <summary>Mission brief & objects</summary>
+  <summary id="tBriefSum">Mission brief & objects</summary>
   <div id="brief" class="mu" style="font-size:.85rem;line-height:1.4">
-    <p style="margin:.3rem 0"><b>Situation:</b> Apollo 13 LM is the lifeboat. CM square LiOH canisters do not fit the LM round port. CO₂ is rising — build an adapter from onboard items.</p>
-    <p style="margin:.3rem 0"><b>Objects you may need:</b></p>
+    <p id="tBriefSit" style="margin:.3rem 0"><b>Situation:</b> Apollo 13 LM is the lifeboat. CM square LiOH canisters do not fit the LM round port. CO₂ is rising — build an adapter from onboard items.</p>
+    <p id="tBriefObj" style="margin:.3rem 0"><b>Objects you may need:</b></p>
     <ul style="margin:.2rem 0;padding-left:1.2rem">
-      <li><b>LiOH canister</b> — square CO₂ scrubber (absorbs carbon dioxide)</li>
-      <li><b>Flight plan cover</b> — stiff cardstock to shape a seal / arch</li>
-      <li><b>LCG bag</b> — plastic bag for an airtight sleeve</li>
-      <li><b>Suit hose</b> — carries air between port and canister</li>
-      <li><b>Duct tape</b> — seals joints (leaks defeat the fix)</li>
+      <li id="tObjCan"><b>LiOH canister</b> — square CO₂ scrubber (absorbs carbon dioxide)</li>
+      <li id="tObjCov"><b>Flight plan cover</b> — stiff cardstock to shape a seal / arch</li>
+      <li id="tObjBag"><b>LCG bag</b> — plastic bag for an airtight sleeve</li>
+      <li id="tObjHose"><b>Suit hose</b> — carries air between port and canister</li>
+      <li id="tObjTape"><b>Duct tape</b> — seals joints (leaks defeat the fix)</li>
     </ul>
-    <p style="margin:.3rem 0">Other items are distractors. There is more than one workable order — think about airflow and sealing.</p>
+    <p id="tBriefTip" style="margin:.3rem 0">Other items are distractors. Drag objects freely into the cabin. More than one order can work — think airflow and sealing.</p>
   </div>
   <details><summary>Real sizes (Smithsonian / approx.)</summary><div id="facts" class="mu"></div></details>
  </details>
  <div class="bot"><div id="sub" role="status" aria-live="polite"></div>
-  <div style="display:flex;gap:8px;align-items:stretch"><div id="inv" aria-label="Inventory" style="flex:1"></div><button id="bPlace" class="pri">Place ⏎</button></div></div>
+  <div style="display:flex;gap:8px;align-items:stretch"><div id="inv" aria-label="Inventory" style="flex:1"></div><button id="bPlace" class="pri" id="bPlaceLabel">Place ⏎</button></div></div>
 </div>
 
 <!-- Nickname / entry screen -->
 <div id="nick" class="ov">
  <div class="card">
-  <h1>🚀 Apollo 13: Fix the Air</h1>
-  <p>Enter a nickname to appear on the public leaderboard. No email or real name required.</p>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+   <h1 style="margin:0">🚀 Apollo 13: Fix the Air</h1>
+   <div style="display:flex;gap:6px">
+     <button type="button" id="langEN" aria-pressed="true" style="min-width:48px">EN</button>
+     <button type="button" id="langFR" aria-pressed="false" style="min-width:48px">FR</button>
+   </div>
+  </div>
+  <p id="tNickIntro">Enter a nickname to appear on the public leaderboard. No email or real name required.</p>
   <div class="row">
-   <label>Nickname (3–16 chars, letters/numbers/spaces/_ )
+   <label id="tNickLabel">Nickname (3–16 chars, letters/numbers/spaces/_ )
     <input id="sNick" type="text" maxlength="16" autocomplete="off" placeholder="e.g. MissionControl">
    </label>
   </div>
   <div class="row">
-   <label>Class code (optional, 4–8 letters/digits – private class board)
+   <label id="tClassLabel">Class code (optional, 4–8 letters/digits – private class board)
     <input id="sClass" type="text" maxlength="8" autocomplete="off" placeholder="e.g. ROOM12">
    </label>
   </div>
   <p id="nickErr" class="err" role="alert"></p>
   <button id="bNick" class="pri" style="width:100%">Continue</button>
-  <p class="mu" style="margin-top:12px;font-size:.85rem">By continuing you agree that your nickname and score may be shown publicly. Data can be deleted on request.</p>
+  <p id="tNickLegal" class="mu" style="margin-top:12px;font-size:.85rem">By continuing you agree that your nickname and score may be shown publicly. Data can be deleted on request.</p>
  </div>
 </div>
 
@@ -108,11 +114,11 @@ table{width:100%;border-collapse:collapse}td,th{padding:4px 6px;border-bottom:1p
 <div id="start" class="ov hide">
  <div class="card">
   <h1>🚀 Apollo 13: Fix the Air</h1>
-  <p>An explosion crippled the spacecraft and the crew moved into the Lunar Module as a lifeboat. But the Command Module's <b>square</b> CO₂ canisters don't fit the Lunar Module's <b>round</b> receptacle. CO₂ is rising. Build the fix using only what is on board.</p>
+  <p id="tStory">An explosion crippled the spacecraft and the crew moved into the Lunar Module as a lifeboat. But the Command Module's <b>square</b> CO₂ canisters don't fit the Lunar Module's <b>round</b> receptacle. CO₂ is rising. Build the fix using only what is on board.</p>
   <div class="steps">
-   <div><b>1. Look</b><br>Drag / swipe to rotate, scroll or pinch to zoom.</div>
-   <div><b>2. Choose</b><br>Tap an item in the inventory bar.</div>
-   <div><b>3. Place</b><br>Tap the glowing marker or "Place".</div>
+   <div id="tStep1"><b>1. Look</b><br>Drag / swipe to rotate, scroll or pinch to zoom.</div>
+   <div id="tStep2"><b>2. Choose</b><br>Select an item in the inventory, then drag it into the cabin or click Place.</div>
+   <div id="tStep3"><b>3. Place freely</b><br>Drop objects anywhere. Build an airtight path from the round port through the square canister.</div>
   </div>
   <div class="row">
    <label>Time limit
@@ -149,7 +155,7 @@ table{width:100%;border-collapse:collapse}td,th{padding:4px 6px;border-bottom:1p
   </div>
   <p id="submitStatus" class="mu" role="status"></p>
   <div id="resultCheck" style="margin:10px 0;padding:10px;background:#0b1220;border-radius:10px;border:1px solid var(--ln)">
-    <p style="margin:0 0 6px"><b>What you built</b></p>
+    <p style="margin:0 0 6px"><b id="tWhatBuilt">What you built</b></p>
     <ol id="endChk" style="margin:.3rem 0;padding-left:1.3rem"></ol>
     <p id="endAssembly" class="mu" style="margin:.4rem 0 0"></p>
   </div>
@@ -187,6 +193,137 @@ const GAME_VERSION = cfg.GAME_VERSION || "1.0";
 const sb = (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_PROJECT"))
   ? null
   : createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* ===== i18n EN / FR ===== */
+let LANG = (localStorage.getItem("a13_lang") === "fr") ? "fr" : "en";
+const I18N = {
+  en: {
+    nickIntro: "Enter a nickname to appear on the public leaderboard. No email or real name required.",
+    nickLabel: "Nickname (3–16 chars, letters/numbers/spaces/_ )",
+    classLabel: "Class code (optional, 4–8 letters/digits – private class board)",
+    nickLegal: "By continuing you agree that your nickname and score may be shown publicly. Data can be deleted on request.",
+    continue: "Continue",
+    story: "An explosion crippled the spacecraft and the crew moved into the Lunar Module as a lifeboat. But the Command Module's <b>square</b> CO₂ canisters don't fit the Lunar Module's <b>round</b> receptacle. CO₂ is rising. Build the fix using only what is on board.",
+    step1: "<b>1. Look</b><br>Drag / swipe to rotate, scroll or pinch to zoom.",
+    step2: "<b>2. Choose</b><br>Select an item in the inventory, then drag it into the cabin or click Place.",
+    step3: "<b>3. Place freely</b><br>Drop objects anywhere. Build an airtight path from the round port through the square canister.",
+    start: "Start mission",
+    briefSum: "Mission brief & objects",
+    briefSit: "<b>Situation:</b> Apollo 13 LM is the lifeboat. CM square LiOH canisters do not fit the LM round port. CO₂ is rising — build an adapter from onboard items.",
+    briefObj: "<b>Objects you may need:</b>",
+    objCan: "<b>LiOH canister</b> — square CO₂ scrubber (absorbs carbon dioxide)",
+    objCov: "<b>Flight plan cover</b> — stiff cardstock to shape a seal / arch",
+    objBag: "<b>LCG bag</b> — plastic bag for an airtight sleeve",
+    objHose: "<b>Suit hose</b> — carries air between port and canister",
+    objTape: "<b>Duct tape</b> — seals joints (leaks defeat the fix)",
+    briefTip: "Other items are distractors. Drag objects freely into the cabin. More than one order can work — think airflow and sealing.",
+    place: "Place ⏎",
+    selectFirst: "Select an item first.",
+    already: "Already placed.",
+    good: "Good placement.",
+    wrongOrder: "That part is useful, but not in this order. Rethink the sequence.",
+    useless: "That will not help with CO2.",
+    complete: "Adapter complete. CO2 is dropping.",
+    missionStart: "Mission start. The square canister does not fit the round port. Build an adapter.",
+    win: "✅ Mission success",
+    lose: "❌ Mission failed",
+    winDetail: "Air is safe again.",
+    loseDetail: "CO₂ reached a dangerous level.",
+    fact: "Real history: ground engineers in Houston designed and tested the \"mail box\" fix before talking the crew through building it.",
+    whatBuilt: "What you built",
+    placed: "placed",
+    notPlaced: "not placed",
+    finalOrder: "Final assembly order:",
+    incomplete: "Adapter incomplete.",
+    nothing: "No adapter parts were successfully placed.",
+    nickInvalid: "Invalid nickname (3–16 chars, letters/numbers/spaces/_ only, no banned words)."
+  },
+  fr: {
+    nickIntro: "Entrez un pseudo pour apparaître au classement public. Aucun e-mail ni vrai nom requis.",
+    nickLabel: "Pseudo (3–16 caractères, lettres/chiffres/espaces/_ )",
+    classLabel: "Code de classe (optionnel, 4–8 lettres/chiffres – classement privé)",
+    nickLegal: "En continuant, vous acceptez que votre pseudo et votre score puissent être affichés publiquement. Les données peuvent être supprimées sur demande.",
+    continue: "Continuer",
+    story: "Une explosion a endommagé le vaisseau. L'équipage a utilisé le module lunaire comme canot de sauvetage. Mais les cartouches de CO₂ <b>carrées</b> du module de commande ne rentrent pas dans l'orifice <b>rond</b> du module lunaire. Le CO₂ monte. Construisez l'adaptateur avec ce qui est à bord.",
+    step1: "<b>1. Observer</b><br>Glisser pour tourner, molette ou pincer pour zoomer.",
+    step2: "<b>2. Choisir</b><br>Sélectionnez un objet dans l'inventaire, puis glissez-le dans la cabine ou cliquez Placer.",
+    step3: "<b>3. Placement libre</b><br>Déposez les objets où vous voulez. Créez un chemin étanche de l'orifice rond vers la cartouche carrée.",
+    start: "Démarrer la mission",
+    briefSum: "Briefing & objets",
+    briefSit: "<b>Situation :</b> Le LM d'Apollo 13 est le canot de sauvetage. Les cartouches LiOH carrées du CM ne rentrent pas dans l'orifice rond du LM. Le CO₂ monte — construisez un adaptateur.",
+    briefObj: "<b>Objets utiles :</b>",
+    objCan: "<b>Cartouche LiOH</b> — épurateur de CO₂ carré",
+    objCov: "<b>Couverture du plan de vol</b> — carton rigide pour former un joint / arche",
+    objBag: "<b>Sac LCG</b> — sac plastique pour une gaine étanche",
+    objHose: "<b>Tuyau de combinaison</b> — transporte l'air entre l'orifice et la cartouche",
+    objTape: "<b>Ruban adhésif</b> — scelle les joints (les fuites font échouer le fix)",
+    briefTip: "Les autres objets sont des leurres. Glissez librement les objets dans la cabine. Plusieurs ordres peuvent fonctionner — pensez flux d'air et étanchéité.",
+    place: "Placer ⏎",
+    selectFirst: "Sélectionnez d'abord un objet.",
+    already: "Déjà placé.",
+    good: "Bon placement.",
+    wrongOrder: "Utile, mais pas dans cet ordre. Repensez la séquence.",
+    useless: "Cela n'aidera pas contre le CO₂.",
+    complete: "Adaptateur terminé. Le CO₂ baisse.",
+    missionStart: "Mission démarrée. La cartouche carrée ne rentre pas dans l'orifice rond. Construisez un adaptateur.",
+    win: "✅ Mission réussie",
+    lose: "❌ Mission échouée",
+    winDetail: "L'air est de nouveau sûr.",
+    loseDetail: "Le CO₂ a atteint un niveau dangereux.",
+    fact: "Histoire vraie : les ingénieurs de Houston ont conçu et testé le « mailbox » au sol avant de guider l'équipage.",
+    whatBuilt: "Ce que vous avez construit",
+    placed: "placé",
+    notPlaced: "non placé",
+    finalOrder: "Ordre final d'assemblage :",
+    incomplete: "Adaptateur incomplet.",
+    nothing: "Aucune pièce d'adaptateur n'a été placée.",
+    nickInvalid: "Pseudo invalide (3–16 caractères, lettres/chiffres/espaces/_ uniquement)."
+  }
+};
+function t(key){ return (I18N[LANG] && I18N[LANG][key]) || (I18N.en[key] || key); }
+function applyLang(){
+  const set = (id, html) => { const el = $(id); if(el) el.innerHTML = html; };
+  const setT = (id, txt) => { const el = $(id); if(el) el.textContent = txt; };
+  set("tNickIntro", t("nickIntro"));
+  // labels contain input children – set only the label text node carefully
+  const nickLab = $("tNickLabel");
+  if(nickLab){
+    const input = nickLab.querySelector("input");
+    nickLab.textContent = "";
+    nickLab.appendChild(document.createTextNode(t("nickLabel")));
+    if(input) nickLab.appendChild(input);
+  }
+  const classLab = $("tClassLabel");
+  if(classLab){
+    const input = classLab.querySelector("input");
+    classLab.textContent = "";
+    classLab.appendChild(document.createTextNode(t("classLabel")));
+    if(input) classLab.appendChild(input);
+  }
+  setT("tNickLegal", t("nickLegal"));
+  setT("bNick", t("continue"));
+  set("tStory", t("story"));
+  set("tStep1", t("step1"));
+  set("tStep2", t("step2"));
+  set("tStep3", t("step3"));
+  setT("bStart", t("start"));
+  setT("tBriefSum", t("briefSum"));
+  set("tBriefSit", t("briefSit"));
+  set("tBriefObj", t("briefObj"));
+  set("tObjCan", t("objCan"));
+  set("tObjCov", t("objCov"));
+  set("tObjBag", t("objBag"));
+  set("tObjHose", t("objHose"));
+  set("tObjTape", t("objTape"));
+  set("tBriefTip", t("briefTip"));
+  setT("bPlace", t("place"));
+  const en = $("langEN"), fr = $("langFR");
+  if(en){ en.setAttribute("aria-pressed", String(LANG==="en")); en.classList.toggle("pri", LANG==="en"); }
+  if(fr){ fr.setAttribute("aria-pressed", String(LANG==="fr")); fr.classList.toggle("pri", LANG==="fr"); }
+  const wb = $("tWhatBuilt"); if(wb) wb.textContent = t("whatBuilt");
+  document.documentElement.lang = LANG === "fr" ? "fr" : "en";
+}
+
 
 /* ===== GAME CONSTANTS ===== */
 const CFG = { start:15, hints:3, hintCost:15, mistakeCo2:3, stepCo2:8 };
@@ -355,7 +492,8 @@ function say(t, speak){
 }
 
 /* ===== 3D scene ===== */
-let renderer, scene, camera, controls, light, placed, marker, problem;
+let renderer, scene, camera, controls, light, placed, marker, problem, dropPlane, preCanister;
+let lastDropPos = null; // {x,y,z} from last successful ray hit
 const BASE = new THREE.Vector3(-12,0,10);
 const M = (c,o) => new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.7,metalness:.15},o||{}));
 
@@ -394,8 +532,27 @@ function initScene(){
   const bench = new THREE.Mesh(new THREE.BoxGeometry(70,2,40), M(0x3b4558));
   bench.position.set(-26,-13.5,16); scene.add(bench);
   const c = DIM.canister;
+  // Wireframe "won't fit" ghost at the round port — shows the Apollo 13 mismatch
   problem = new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d), new THREE.MeshBasicMaterial({color:0xff4d4f,wireframe:true}));
   problem.position.set(0,0,9); scene.add(problem);
+  // Physical square canister sitting on the bench (starting state = the real problem)
+  preCanister = new THREE.Group();
+  const preBody = new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d), M(0x8d949e,{metalness:.7}));
+  preCanister.add(preBody);
+  for(let i=-2;i<=2;i++){
+    const band = new THREE.Mesh(new THREE.BoxGeometry(c.w+.4,.8,c.d+.4), M(0x4b5260));
+    band.position.y = i*4.5; preCanister.add(band);
+  }
+  preCanister.position.set(-28, -2, 18);
+  scene.add(preCanister);
+  // Invisible horizontal plane for free drop raycasts (bench height)
+  dropPlane = new THREE.Mesh(
+    new THREE.PlaneGeometry(200, 200),
+    new THREE.MeshBasicMaterial({ visible: false, side: THREE.DoubleSide })
+  );
+  dropPlane.rotation.x = -Math.PI/2;
+  dropPlane.position.set(-20, -12, 20);
+  scene.add(dropPlane);
   placed = new THREE.Group(); scene.add(placed);
   // Arrow marker (cone + thin shaft) instead of yellow ball
   marker = new THREE.Group();
@@ -419,42 +576,51 @@ function resize(){
 }
 addEventListener("resize", resize);
 
-function build(id){
-  const c = DIM.canister, p = SLOT[id], g = new THREE.Group();
-  let m;
+function build(id, worldPos){
+  // Free placement: worldPos = {x,y,z} from raycast, else fall back to SLOT
+  const c = DIM.canister;
+  const fallback = SLOT[id] || [-20, 0, 16];
+  const px = worldPos ? worldPos.x : fallback[0];
+  const py = worldPos ? worldPos.y : fallback[1];
+  const pz = worldPos ? worldPos.z : fallback[2];
+  const g = new THREE.Group();
+  g.userData.itemId = id;
+
   if(id==="canister"){
-    m = new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d), M(0x8d949e,{metalness:.7}));
+    const m = new THREE.Mesh(new THREE.BoxGeometry(c.w,c.h,c.d), M(0x8d949e,{metalness:.7}));
     g.add(m);
     for(let i=-2;i<=2;i++){
       const s = new THREE.Mesh(new THREE.BoxGeometry(c.w+.4,.8,c.d+.4), M(0x4b5260));
       s.position.y = i*4.5; g.add(s);
     }
-  }
-  if(id==="cover"){
+  } else if(id==="cover"){
     g.add(new THREE.Mesh(new THREE.BoxGeometry(c.w+3,14,c.d+3), M(0xe8d9b0,{transparent:true,opacity:.92,roughness:.9})));
-  }
-  if(id==="bag"){
+  } else if(id==="bag"){
     g.add(new THREE.Mesh(new THREE.BoxGeometry(DIM.bag.w,1.5,DIM.bag.h), M(0x9fc4e8,{transparent:true,opacity:.6})));
-  }
-  if(id==="hose"){
-    const cu = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(-30,12,16),
-      new THREE.Vector3(-22,24,20),
-      new THREE.Vector3(-8,12,12),
-      new THREE.Vector3(0,0,3)
-    ]);
-    g.add(new THREE.Mesh(new THREE.TubeGeometry(cu,40,DIM.hose.r,10), M(0xf2f2f2)));
-    g.position.set(0,0,0); placed.add(g); return;
-  }
-  if(id==="tape"){
-    [-8,0,8].forEach(y=>{
-      const t = new THREE.Mesh(new THREE.TorusGeometry(12.6,.9,8,32), M(0x7a7f86));
-      t.rotation.x = Math.PI/2; t.position.set(-30,y,16); placed.add(t);
+  } else if(id==="hose"){
+    // Short flexible hose segment at drop point, aimed toward port (origin)
+    const start = new THREE.Vector3(px, py, pz);
+    const end = new THREE.Vector3(0, 0, 3);
+    const mid = start.clone().lerp(end, 0.5).add(new THREE.Vector3(0, 12, 0));
+    const cu = new THREE.CatmullRomCurve3([start, mid, end]);
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(cu, 32, DIM.hose.r, 10), M(0xf2f2f2)));
+    placed.add(g);
+    return g;
+  } else if(id==="tape"){
+    [ -6, 0, 6 ].forEach(y=>{
+      const t = new THREE.Mesh(new THREE.TorusGeometry(10, .8, 8, 24), M(0x7a7f86));
+      t.rotation.x = Math.PI/2;
+      t.position.set(px, py+y, pz);
+      placed.add(t);
     });
-    return;
+    return null;
+  } else {
+    // Generic distractor box
+    g.add(new THREE.Mesh(new THREE.BoxGeometry(8,8,8), M(0x666666)));
   }
-  g.position.set(p[0],p[1],p[2]);
+  g.position.set(px, py, pz);
   placed.add(g);
+  return g;
 }
 function clearPlaced(){
   placed.traverse(o=>{
@@ -532,8 +698,10 @@ function startRound(){
     placedSeq:[]
   });
   clearPlaced();
-  problem.visible = true;
-  marker.visible = true;
+  if(problem) problem.visible = true;
+  if(preCanister) preCanister.visible = true;
+  if(marker) marker.visible = true;
+  lastDropPos = null;
   resetView();
   document.querySelectorAll("#inv button").forEach(b=>{
     b.disabled = false;
@@ -544,15 +712,15 @@ function startRound(){
   $("bHint").disabled = false;
   refreshChecklist();
   setState("play");
-  say("Mission start. CO2 is rising. Build the adapter.", true);
+  say(t("missionStart"), true);
 }
 
 function attempt(){
   if(G.state!=="play" || G.solved) return;
-  if(!G.sel){ say("Select an item first."); return; }
+  if(!G.sel){ say(t("selectFirst")); return; }
 
   // Already used?
-  if(G.used[G.sel]){ say("Already placed."); return; }
+  if(G.used[G.sel]){ say(t("already")); return; }
 
   // Would this item keep at least one valid path alive?
   if(!Array.isArray(G.placedSeq)) G.placedSeq = [];
@@ -562,7 +730,9 @@ function attempt(){
   );
 
   if(stillPossible && REQUIRED.has(G.sel)){
-    build(G.sel);
+    // Free placement position from last raycast (or default slot)
+    const pos = lastDropPos ? { x:lastDropPos.x, y:lastDropPos.y, z:lastDropPos.z } : null;
+    build(G.sel, pos);
     G.used[G.sel] = true;
     G.placedSeq.push(G.sel);
     G.log.push({ step:G.sel, t: Math.round(performance.now() - G.startTs) });
@@ -572,10 +742,13 @@ function attempt(){
     if(btn) btn.disabled = true;
     const just = G.sel;
     G.sel = null;
+    lastDropPos = null;
     document.querySelectorAll("#inv button").forEach(b => b.setAttribute("aria-pressed","false"));
-    if(just==="canister") problem.visible = false;
+    if(just==="canister"){
+      problem.visible = false;
+      if(preCanister) preCanister.visible = false;
+    }
 
-    // Complete?
     const done = VALID_ORDERS.some(ord =>
       Array.isArray(ord) && ord.length === G.placedSeq.length &&
       ord.every((id,i)=>G.placedSeq[i]===id)
@@ -583,16 +756,25 @@ function attempt(){
     if(done){
       G.solved = true;
       marker.visible = false;
-      say("Adapter complete. CO2 is dropping.", true);
+      say(t("complete"), true);
     } else {
-      const hintNext = STEPS[just] ? STEPS[just][0]+" done." : "Good.";
-      say(hintNext+" Keep building the airtight path.");
+      say(t("good") + " — " + (STEPS[just] ? STEPS[just][0] : ""));
     }
   } else {
+    // Allow free placement of distractors for exploration but count as mistake
+    if(lastDropPos && !REQUIRED.has(G.sel)){
+      build(G.sel, lastDropPos);
+      G.used[G.sel] = true;
+      const btn = document.querySelector('#inv button[data-id="'+G.sel+'"]');
+      if(btn) btn.disabled = true;
+      G.sel = null;
+      lastDropPos = null;
+      document.querySelectorAll("#inv button").forEach(b => b.setAttribute("aria-pressed","false"));
+    }
     G.mist++;
     G.co2 = Math.min(100, G.co2 + CFG.mistakeCo2);
     const real = REQUIRED.has(G.sel);
-    say(real ? "That part is useful, but not in this order. Rethink the sequence." : "That will not help with CO2.");
+    say(real ? t("wrongOrder") : t("useless"));
   }
 }
 
@@ -671,11 +853,11 @@ function endRound(win){
   const score = win ? Math.max(0, Math.round(1000 + G.time*3 - G.hints*100 - G.mist*25)) : 0;
   G.results.push({ n: G.teams[G.ti], r: win?"Success":"Failed", s:score });
   setState(win ? "won" : "lost");
-  $("eT").textContent = win ? "✅ Mission success" : "❌ Mission failed";
+  $("eT").textContent = win ? t("win") : t("lose");
   $("eS").textContent = win
-    ? "Air is safe again. Score "+score+" · time left "+Math.round(G.time)+" s · hints "+G.hints+" · mistakes "+G.mist+"."
-    : "CO₂ reached a dangerous level.";
-  $("eF").textContent = 'Real history: ground engineers in Houston designed and tested the "mail box" fix before talking the crew through building it. The Smithsonian mock-up measures 18.4×18.4×22.9 cm. There was more than one workable sequence using the same materials.';
+    ? t("winDetail")+" Score "+score+" · "+Math.round(G.time)+" s · hints "+G.hints+" · mistakes "+G.mist+"."
+    : t("loseDetail");
+  $("eF").textContent = t("fact");
   $("rankBox").classList.add("hide");
   $("submitStatus").textContent = "";
   $("bRetrySubmit").classList.add("hide");
@@ -689,7 +871,7 @@ function endRound(win){
       const li = document.createElement("li");
       const done = Array.isArray(G.placedSeq) && G.placedSeq.includes(id);
       const name = (ITEMS.find(x=>x.id===id)||{}).n || id;
-      li.textContent = (done ? "✓ " : "○ ") + name + (done ? " — placed" : " — not placed");
+      li.textContent = (done ? "✓ " : "○ ") + name + (done ? " — "+t("placed") : " — "+t("notPlaced"));
       li.style.color = done ? "var(--ok)" : "var(--mu)";
       endChk.appendChild(li);
     });
@@ -697,12 +879,12 @@ function endRound(win){
   const asm = $("endAssembly");
   if(asm){
     if(win){
-      asm.textContent = "Final assembly order: " + (G.placedSeq||[]).map(id => (ITEMS.find(x=>x.id===id)||{}).n || id).join(" → ");
+      asm.textContent = t("finalOrder") + " " + (G.placedSeq||[]).map(id => (ITEMS.find(x=>x.id===id)||{}).n || id).join(" → ");
     } else {
       const seq = Array.isArray(G.placedSeq) ? G.placedSeq : [];
       asm.textContent = seq.length
-        ? "You placed: " + seq.map(id => (ITEMS.find(x=>x.id===id)||{}).n || id).join(" → ") + ". Adapter incomplete."
-        : "No adapter parts were successfully placed.";
+        ? seq.map(id => (ITEMS.find(x=>x.id===id)||{}).n || id).join(" → ") + ". " + t("incomplete")
+        : t("nothing");
     }
   }
 
@@ -815,11 +997,21 @@ function init(){
   buildUI();
   $("sRed").checked = reduced;
 
+  // Language toggle
+  function setLang(l){
+    LANG = l;
+    try{ localStorage.setItem("a13_lang", l); }catch(_){}
+    applyLang();
+  }
+  if($("langEN")) $("langEN").onclick = () => setLang("en");
+  if($("langFR")) $("langFR").onclick = () => setLang("fr");
+  applyLang();
+
   // Nickname screen
   $("bNick").onclick = async () => {
     const n = cleanNick($("sNick").value);
     if(!n){
-      $("nickErr").textContent = "Invalid nickname (3–16 chars, letters/numbers/spaces/_ only, no banned words).";
+      $("nickErr").textContent = t("nickInvalid");
       return;
     }
     G.nickname = n;
@@ -877,16 +1069,39 @@ function init(){
     }
   };
 
-  // Pointer place
+  // Free drag/drop place: click on cabin (drop plane) with an item selected
   const cv = $("cv"), ray = new THREE.Raycaster(), v2 = new THREE.Vector2();
   let down = null;
+  function hitDrop(clientX, clientY){
+    v2.set(clientX/innerWidth*2-1, -(clientY/innerHeight)*2+1);
+    ray.setFromCamera(v2, camera);
+    const targets = [];
+    if(dropPlane) targets.push(dropPlane);
+    if(marker) targets.push(marker);
+    // also allow hitting the bench / wall-ish by using dropPlane primarily
+    const hits = ray.intersectObjects(targets, true);
+    if(hits.length){
+      const pt = hits[0].point;
+      lastDropPos = { x: pt.x, y: Math.max(pt.y, -10), z: pt.z };
+      return true;
+    }
+    // fallback: project onto y=-12 plane
+    const plane = new THREE.Plane(new THREE.Vector3(0,1,0), 12);
+    const pt2 = new THREE.Vector3();
+    if(ray.ray.intersectPlane(plane, pt2)){
+      lastDropPos = { x: pt2.x, y: -10, z: pt2.z };
+      return true;
+    }
+    return false;
+  }
   cv.addEventListener("pointerdown", e => { down = [e.clientX, e.clientY]; });
   cv.addEventListener("pointerup", e => {
-    if(!down || G.state!=="play" || !marker.visible) return;
-    if(Math.hypot(e.clientX-down[0], e.clientY-down[1]) > 6) return;
-    v2.set(e.clientX/innerWidth*2-1, -(e.clientY/innerHeight)*2+1);
-    ray.setFromCamera(v2, camera);
-    if(ray.intersectObject(marker).length) attempt();
+    if(!down || G.state!=="play") return;
+    const dist = Math.hypot(e.clientX-down[0], e.clientY-down[1]);
+    // small movement = place click; larger = orbit drag (OrbitControls handles that)
+    if(dist > 12) return;
+    if(!G.sel){ say(t("selectFirst")); return; }
+    if(hitDrop(e.clientX, e.clientY)) attempt();
   });
 
   addEventListener("keydown", e => {
