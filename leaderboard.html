@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data: blob:; connect-src https://*.supabase.co; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'unsafe-inline'; img-src data: blob:; connect-src https://*.supabase.co https://cdn.jsdelivr.net; base-uri 'none'; form-action 'none'">
 <title>Apollo 13 Leaderboard</title>
 <style>
 :root{--bg:#070a12;--pn:#111827ee;--tx:#eef2f8;--mu:#a7b1c2;--ac:#ffb020;--ok:#3ddc97;--bd:#ff4d4f;--ln:#2b364a}
@@ -66,17 +66,18 @@ a{color:var(--ac)}
   Data can be deleted on request.
 </p>
 
+<script src="config.js"></script>
 <script type="module">
-// ============================================================
-// CONFIG – paste your Supabase project values here
-// ============================================================
-const SUPABASE_URL = "https://yxfdpvviqplrbozvhvly.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_U8Lwfetu50Anu9ULRi-5Yw_nk6M6bwT";
-// ============================================================
-
+// Keys live in config.js – edit only that file
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/+esm";
 
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const cfg = window.A13_CONFIG || {};
+const SUPABASE_URL = cfg.SUPABASE_URL || "";
+const SUPABASE_ANON_KEY = cfg.SUPABASE_ANON_KEY || "";
+
+const sb = (!SUPABASE_URL || SUPABASE_URL.includes("YOUR_PROJECT"))
+  ? null
+  : createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const $ = id => document.getElementById(id);
 let filter = "today"; // today | week | all
