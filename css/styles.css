@@ -815,3 +815,39 @@ body.dragging #inv {
         max-height: 110px
     }
 }
+
+/* FIX: Photo lightbox (zoom). #imgLightbox is also .ov, so it is already fixed + centered.
+   These rules were missing: the ✕ is now pinned to the screen corner and the photo
+   always fits, portrait or landscape. */
+#imgLightbox {
+    z-index: 50;
+    background: #05070df2;
+    padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom));
+    overscroll-behavior: contain
+}
+
+#imgLightbox img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    object-fit: contain;
+    border-radius: 10px
+}
+
+.lb-close {
+    position: fixed;
+    top: max(10px, env(safe-area-inset-top));
+    right: 10px;
+    z-index: 51;
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    border-radius: 50%;
+    background: #000c;
+    border: 2px solid var(--ac);
+    font-size: 1.3rem;
+    line-height: 1
+}
