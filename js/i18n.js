@@ -112,7 +112,31 @@ window.A13_I18N = {
       stow: "Stowage bag",
       hose: "Suit hose",
       tape: "Duct tape"
-    }
+    },
+
+    // Phase 1: Think – briefing MCQ
+    briefAlert: "Warning: CO₂ levels rising. Command Module filters are square, but the Lunar Module sockets are round.",
+    briefTitle: "What is the primary engineering objective?",
+    briefQ1: "Force the square canister inside the round hole.",
+    briefQ2: "Build an airtight adapter using onboard materials to direct airflow.",
+    briefWrong: "Not quite. Forcing the square canister would break the seal and waste time.",
+    briefRight: "Correct. Build an airtight adapter — then assemble it step by step.",
+    briefContinue: "Begin assembly",
+
+    // Telemetry labels
+    telShapeOff: "Body: —",
+    telShapeOn: "Body: SHAPED",
+    telSleeveOff: "Envelope: —",
+    telSleeveOn: "Envelope: CREATED",
+    telHoseOff: "Airflow: —",
+    telHoseOn: "Airflow: REROUTED",
+    telSealOff: "Seal: —",
+    telSealOn: "Seal: AIRTIGHT",
+
+    // Phase 3: Compare debrief
+    debriefProblem: "Problem: 3 crew in a 2-person cabin; square CM canisters would not fit the round LM ports.",
+    debriefSolution: "Solution: Ground engineers improvised a sealed adapter from flight-plan covers, an LCG bag, a suit hose, and duct tape — the “mailbox”.",
+    nasmCaption: "Smithsonian NASM A19760747000 — the real adapter."
   },
 
   fr: {
@@ -219,7 +243,28 @@ window.A13_I18N = {
       stow: "Sac de rangement",
       hose: "Tuyau de combinaison",
       tape: "Ruban adhésif"
-    }
+    },
+
+    briefAlert: "Alerte : le CO₂ monte. Les filtres du module de commande sont carrés, les orifices du module lunaire sont ronds.",
+    briefTitle: "Quel est l'objectif d'ingénierie principal ?",
+    briefQ1: "Forcer la cartouche carrée dans le trou rond.",
+    briefQ2: "Construire un adaptateur étanche avec le matériel à bord pour diriger l'air.",
+    briefWrong: "Pas tout à fait. Forcer la cartouche casserait l'étanchéité et ferait perdre du temps.",
+    briefRight: "Correct. Construire un adaptateur étanche — puis l'assembler étape par étape.",
+    briefContinue: "Commencer l'assemblage",
+
+    telShapeOff: "Corps : —",
+    telShapeOn: "Corps : FORMÉ",
+    telSleeveOff: "Enveloppe : —",
+    telSleeveOn: "Enveloppe : CRÉÉE",
+    telHoseOff: "Flux d'air : —",
+    telHoseOn: "Flux d'air : RÉORIENTÉ",
+    telSealOff: "Joint : —",
+    telSealOn: "Joint : ÉTANCHE",
+
+    debriefProblem: "Problème : 3 astronautes dans une cabine pour 2 ; les cartouches carrées du CM ne rentraient pas dans les orifices ronds du LM.",
+    debriefSolution: "Solution : les ingénieurs au sol ont improvisé un adaptateur étanche avec des couvertures de plan de vol, un sac LCG, un tuyau de combinaison et du ruban adhésif — le « mailbox ».",
+    nasmCaption: "Smithsonian NASM A19760747000 — le vrai adaptateur."
   }
 };
 

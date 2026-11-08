@@ -178,7 +178,16 @@ window.applyLang = function applyLang(){
 
 /* ===== audio ===== */
 let AC, master, nbuf, pbuf, tBreath, tBeep;
+let breathLoopEl=null, breathCritEl=null, introRadioEl=null, breathMode="off";
+function makeAudioEl(src, loop){
+  const a=new Audio(src); a.loop=!!loop; a.preload="auto"; a.volume=0; return a;
+}
 function audioInit(){
+  if(!breathLoopEl){
+    breathLoopEl=makeAudioEl("audio/breath-loop.ogg", true);
+    breathCritEl=makeAudioEl("audio/breath-critical.ogg", true);
+    introRadioEl=makeAudioEl("audio/Apollo13-wehaveaproblem.ogg", false);
+  }
   if(AC||!(window.AudioContext||window.webkitAudioContext)) return;
   AC=new(window.AudioContext||window.webkitAudioContext)();
   master=AC.createGain(); master.gain.value=muted?0:vol; master.connect(AC.destination);
@@ -190,7 +199,42 @@ function audioInit(){
   s.buffer=nbuf;s.loop=true;f.type="lowpass";f.frequency.value=300;g.gain.value=.03;
   s.connect(f);f.connect(g);g.connect(master);s.start();
 }
-function setVol(){ if(master) master.gain.value=muted?0:vol; }
+function setVol(){
+  if(master) master.gain.value=muted?0:vol;
+  const v=muted?0:vol;
+  if(breathLoopEl) breathLoopEl.volume=Math.min(1,v*.55);
+  if(breathCritEl) breathCritEl.volume=Math.min(1,v*.85);
+  if(introRadioEl) introRadioEl.volume=Math.min(1,v*.9);
+}
+function setBreathMode(mode){
+  if(breathMode===mode) return;
+  breathMode=mode;
+  try{
+    if(breathLoopEl){ breathLoopEl.pause(); breathLoopEl.currentTime=0; }
+    if(breathCritEl){ breathCritEl.pause(); breathCritEl.currentTime=0; }
+    if(muted||!mode||mode==="off") return;
+    const el=mode==="critical"?breathCritEl:breathLoopEl;
+    if(el){ el.volume=muted?0:(mode==="critical"?vol*.85:vol*.55); el.play().catch(()=>{}); }
+  }catch(_){}
+}
+function playIntroRadio(){
+  if(!introRadioEl||muted) return;
+  try{
+    introRadioEl.currentTime=0;
+    introRadioEl.volume=muted?0:vol*.9;
+    const stopAt=25;
+    introRadioEl.play().catch(()=>{});
+    const checker=()=>{
+      if(!introRadioEl||introRadioEl.paused) return;
+      if(introRadioEl.currentTime>=stopAt){ introRadioEl.pause(); return; }
+      requestAnimationFrame(checker);
+    };
+    requestAnimationFrame(checker);
+  }catch(_){}
+}
+function stopIntroRadio(){
+  try{ if(introRadioEl){ introRadioEl.pause(); introRadioEl.currentTime=0; } }catch(_){}
+}
 function makePink(){                 // pink noise = softer and more natural than white noise
   const n=AC.sampleRate*3, b=AC.createBuffer(1,n,AC.sampleRate), d=b.getChannelData(0);
   let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
@@ -248,8 +292,38 @@ function beep(){
   }
   tBeep=setTimeout(beep, wait);
 }
-function loopsOn(){ loopsOff(); if(AC){ AC.resume(); breath(); beep(); } }
-function loopsOff(){ clearTimeout(tBreath); clearTimeout(tBeep); if(AC&&G.state!=="play"&&G.state!=="intro") AC.suspend(); }
+function loopsOn(){
+  loopsOff();
+  if(AC){ AC.resume(); beep(); }
+  // Sample-based breathing: calm loop while playing; critical track when CO₂ is high
+  setBreathMode(G.co2>=70?"critical":"loop");
+}
+function loopsOff(){
+  clearTimeout(tBreath); clearTimeout(tBeep);
+  setBreathMode("off");
+  if(AC&&G.state!=="play"&&G.state!=="intro"&&G.state!=="briefing") AC.suspend();
+}
+function updateTelemetry(){
+  const map={
+    shape:["telShape","telShapeOff","telShapeOn"],
+    sleeve:["telSleeve","telSleeveOff","telSleeveOn"],
+    hose:["telHose","telHoseOff","telHoseOn"],
+    seal:["telSeal","telSealOff","telSealOn"]
+  };
+  const next=nextRole();
+  ROLES.forEach(r=>{
+    const [id,off,on]=map[r];
+    const el=$(id); if(!el) return;
+    const item=document.querySelector(`.tel-item[data-role="${r}"]`);
+    if(G.filled[r]){
+      el.textContent=t(on);
+      if(item){ item.classList.add("done"); item.classList.remove("now"); }
+    } else {
+      el.textContent=t(off);
+      if(item){ item.classList.toggle("now", r===next); item.classList.remove("done"); }
+    }
+  });
+}
 /* ===== voice (Web Speech API, picks the best installed voice) ===== */
 let VOICES=[];
 function loadVoices(){ try{ VOICES=speechSynthesis.getVoices()||[]; }catch(_){ VOICES=[]; } }
@@ -522,9 +596,10 @@ function setState(s){
   $("nick").classList.toggle("hide", s!=="nick");
   $("start").classList.toggle("hide", s!=="menu");
   $("intro").classList.toggle("hide", s!=="intro");
+  $("briefing")?.classList.toggle("hide", s!=="briefing");
   $("pause").classList.toggle("hide", s!=="pause");
   $("end").classList.toggle("hide", s!=="won"&&s!=="lost");
-  $("hud").classList.toggle("hide", s==="nick"||s==="menu"||s==="intro"||s==="won"||s==="lost");
+  $("hud").classList.toggle("hide", s==="nick"||s==="menu"||s==="intro"||s==="briefing"||s==="won"||s==="lost");
   if(s==="intro"){ if(AC) AC.resume(); }
   else if(s==="play") loopsOn(); else loopsOff();
 }
@@ -540,6 +615,7 @@ function startIntro(){
   if(preCanister){ preCanister.visible=true; preCanister.position.set(CP.x,CP.y,CP.z); }
   controls.enabled=false;
   setState("intro"); introStart=performance.now(); alarmOn();
+  playIntroRadio();
   let acc=0;
   INTRO.forEach(([k,ms],i)=>{
     introTimers.push(setTimeout(()=>{ $("introTxt").textContent=t(k); say(t(k),true); if(i===2) alarmOff(); },acc));
@@ -550,8 +626,48 @@ function startIntro(){
 function endIntro(){
   if(G.state!=="intro") return;
   introTimers.forEach(clearTimeout); introTimers=[]; alarmOff();
+  stopIntroRadio();
   try{ speechSynthesis.cancel(); }catch(_){}
-  startRound(true);
+  startBriefing();
+}
+
+/* Phase 1: Think – freeze with MCQ before assembly */
+function startBriefing(){
+  setState("briefing");
+  const alert=$("briefAlert"), title=$("briefTitle"), prompt=$("briefPrompt");
+  const choices=$("briefChoices"), fb=$("briefFeedback");
+  if(alert) alert.textContent=t("briefAlert");
+  if(title) title.textContent=t("briefTitle");
+  if(prompt) prompt.textContent="";
+  if(fb) fb.textContent="";
+  if(choices){
+    choices.innerHTML="";
+    const opts=[
+      {txt:t("briefQ1"), ok:false},
+      {txt:t("briefQ2"), ok:true}
+    ];
+    // Shuffle so correct answer is not always second
+    if(Math.random()<.5) opts.reverse();
+    opts.forEach(o=>{
+      const b=document.createElement("button");
+      b.type="button";
+      b.textContent=o.txt;
+      b.onclick=()=>{
+        if(o.ok){
+          b.classList.add("correct");
+          choices.querySelectorAll("button").forEach(x=>x.disabled=true);
+          if(fb) fb.textContent=t("briefRight");
+          fb && (fb.style.color="var(--ok)");
+          setTimeout(()=>startRound(true), 900);
+        } else {
+          b.classList.add("wrong");
+          b.disabled=true;
+          if(fb){ fb.textContent=t("briefWrong"); fb.style.color="var(--bd)"; }
+        }
+      };
+      choices.appendChild(b);
+    });
+  }
 }
 
 function startRound(fromIntro){
@@ -570,6 +686,7 @@ function startRound(fromIntro){
   $("tn").textContent=G.teams[G.ti];
   $("hl").textContent=CFG.hints;
   $("bHint").disabled=false;
+  updateTelemetry();
   setState("play");
   say(t("missionStart"), !fromIntro);
 }
@@ -595,6 +712,7 @@ function attempt(){
   });
   G.sel=null; clearGhost();
   document.querySelectorAll("#inv button").forEach(b=>b.setAttribute("aria-pressed","false"));
+  updateTelemetry();
   if(G.step>=ROLES.length){
     G.solved=true; if(marker) marker.visible=false;
     say(t("complete"), true);
@@ -677,6 +795,18 @@ function endRound(win){
       : (seq.length ? seq.join(" → ")+" — "+t("incomplete") : t("nothing"));
   }
   $("tRealSteps").textContent=t("realSteps");
+  // Phase 3: Historical comparison bullets + NASM photo
+  const bullets=$("debriefBullets");
+  if(bullets){
+    bullets.innerHTML="";
+    [t("debriefProblem"), t("debriefSolution")].forEach(txt=>{
+      const li=document.createElement("li");
+      li.innerHTML=txt.replace(/^(Problem|Solution|Problème|Solution)\s*:/, m=>`<strong>${m}</strong>`);
+      bullets.appendChild(li);
+    });
+  }
+  const photo=$("nasmPhoto");
+  if(photo) photo.alt=t("nasmCaption");
 
   const tb=$("eB"); tb.textContent="";
   G.results.slice(-12).forEach(r=>{
@@ -686,7 +816,7 @@ function endRound(win){
   });
   const nx=(G.ti+1)%G.teams.length;
   $("bNext").textContent = G.teams.length>1 ? `${t("nextTeam")} ${G.teams[nx]}` : t("playAgain");
-  $("bNext").onclick=()=>{ G.ti=nx; startRound(false); };
+  $("bNext").onclick=()=>{ G.ti=nx; startBriefing(); };
   $("bNext").focus();
   if(win) submitScore(true);
 }
@@ -727,6 +857,9 @@ function frame(now){
     $("cp").parentNode.parentNode.querySelector("[role=progressbar]").setAttribute("aria-valuenow",Math.round(co));
     const crit=co>=75&&G.state==="play";
     $("ban").classList.toggle("hide",!crit);
+    // Switch breathing sample as pressure rises
+    if(G.state==="play"&&!muted) setBreathMode(co>=70?"critical":"loop");
+    else if(G.state!=="play") setBreathMode("off");
     const ef=!reduced&&G.state!=="menu"&&G.state!=="nick";
     $("cv").style.filter=ef&&co>45?`blur(${(((co-45)/55)*6).toFixed(1)}px)`:"none";
     $("vig").style.opacity=ef?clamp((co-35)/65,0,.9):0;
@@ -818,6 +951,8 @@ function init(){
   $("bMute").onclick=()=>{
     muted=!muted; $("bMute").textContent=muted?"🔇":"🔊";
     $("bMute").setAttribute("aria-pressed",String(muted)); setVol();
+    if(muted){ setBreathMode("off"); stopIntroRadio(); }
+    else if(G.state==="play") setBreathMode(G.co2>=70?"critical":"loop");
     if(muted&&"speechSynthesis"in window) speechSynthesis.cancel();
   };
   $("bFs").onclick=()=>{ try{ document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen(); }catch(_){} };
