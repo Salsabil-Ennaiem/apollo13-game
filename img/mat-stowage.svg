@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 90"><rect width="120" height="90" fill="#fff"/>
+<path d="M38 22c0-10 44-10 44 0" fill="none" stroke="#4d5a3c" stroke-width="5" stroke-linecap="round"/>
+<rect x="26" y="20" width="68" height="62" rx="9" fill="#6b7a52" stroke="#445033" stroke-width="2"/>
+<rect x="26" y="20" width="68" height="20" rx="9" fill="#5b6945"/>
+<line x1="26" y1="40" x2="94" y2="40" stroke="#445033" stroke-width="2"/>
+<rect x="50" y="46" width="20" height="14" rx="2" fill="#d9d3bd" stroke="#445033"/>
+<line x1="60" y1="20" x2="60" y2="40" stroke="#c9c9c9" stroke-width="2" stroke-dasharray="3 2"/>
+<text x="60" y="73" font-family="Arial,sans-serif" font-size="8" font-weight="700" fill="#e5e8dc" text-anchor="middle">STOWAGE</text></svg>

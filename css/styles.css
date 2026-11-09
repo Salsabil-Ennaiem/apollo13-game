@@ -1219,3 +1219,7 @@ details.more>summary {
 @keyframes penFlash { 0% { color: #ff4d4d; transform: scale(1.35) } 100% { transform: scale(1) } }
 .pen-float { position: absolute; margin-left: 6px; color: #ff4d4d; font-weight: 700; animation: penUp 1.1s ease-out forwards; pointer-events: none }
 @keyframes penUp { from { opacity: 1; transform: translateY(0) } to { opacity: 0; transform: translateY(-14px) } }
+
+
+/* real-photo thumbnails in the Parts box */
+#inv .thumb { display: block; width: 52px; height: 40px; object-fit: contain; background: #fff; border-radius: 6px; margin-bottom: 3px; pointer-events: none }

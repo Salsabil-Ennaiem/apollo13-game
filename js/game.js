@@ -41,13 +41,19 @@ const PART = {
 };
 const PREREQ = { hose:["shape"], seal:["shape","sleeve","hose"] };   // jobs that must exist first
 const ITEMS = [
-  {id:"cover", ic:"📘", d:"21×28 cm"},
-  {id:"check", ic:"📋", d:"20×28 cm"},
-  {id:"bag",   ic:"🛍️", d:"18×26 cm"},
-  {id:"stow",  ic:"🎒", d:"30×40 cm"},
-  {id:"hose",  ic:"🧵", d:"132 cm"},
-  {id:"tape",  ic:"🩹", d:"5 cm"}
+  {id:"cover", ic:"📘", img:"img/mat-flightplan.svg", d:"21×28 cm"},
+  {id:"check", ic:"📋", img:"img/mat-checklist.svg", d:"20×28 cm"},
+  {id:"bag",   ic:"🛍️", img:"img/mat-bag.png", d:"18×26 cm"},
+  {id:"stow",  ic:"🎒", img:"img/mat-stowage.svg", d:"30×40 cm"},
+  {id:"hose",  ic:"🧵", img:"img/mat-hose.png", d:"132 cm"},
+  {id:"tape",  ic:"🩹", img:"img/mat-tape.png", d:"5 cm"}
 ];
+function fillInvBtn(b,it,idx){
+  b.textContent="";
+  if(it.img){ const im=document.createElement("img"); im.src=it.img; im.alt=""; im.className="thumb"; im.draggable=false; b.appendChild(im); }
+  b.appendChild(document.createTextNode(`${idx}. ${tItem(it.id)}`));
+  const sm=document.createElement("small"); sm.textContent=it.d; b.appendChild(sm);
+}
 const CP = {x:-28, y:-2, z:18};   // centre of the canister on the bench
 
 const $ = id => document.getElementById(id);
@@ -160,7 +166,7 @@ window.applyLang = function applyLang(){
   setText("tResearch", t("research"));
   setText("tResearchTitle", t("researchTitle"));
   setText("tMore", t("more")); setText("tSettings", t("settings"));
-  ["capBag","capCard","capTape","capHoseM","capSock","capCanSq","capCanRd"].forEach(k=>setText(k,t(k)));
+  ["capBag","capCard","capTape","capHoseM","capCanSq","capCanRd"].forEach(k=>setText(k,t(k)));
   setText("tTutOpt", t("tutOpt")); setText("coachSkip", t("tutSkip")); setText("coachPaused", t("tutPaused"));
   setText("capCabin", t("capCabin"));
   setText("capSide", t("capSide"));
@@ -173,9 +179,7 @@ window.applyLang = function applyLang(){
     const it=ITEMS.find(x=>x.id===id);
     if(!it) return;
     const idx=[...b.parentNode.children].indexOf(b)+1;
-    b.textContent="";
-    b.appendChild(document.createTextNode(`${idx}. ${it.ic} ${tItem(id)}`));
-    const sm=document.createElement("small"); sm.textContent=it.d; b.appendChild(sm);
+    fillInvBtn(b,it,idx);
   });
 
   // Lang button states
@@ -651,8 +655,7 @@ function buildUI(){
     const b=document.createElement("button");
     b.dataset.id=it.id; b.type="button";
     b.setAttribute("aria-pressed","false");
-    b.textContent=`${i+1}. ${it.ic} ${tItem(it.id)}`;
-    const sm=document.createElement("small"); sm.textContent=it.d; b.appendChild(sm);
+    fillInvBtn(b,it,i+1);
     b.onclick=()=>{ if(!suppressClick) select(it.id); };
     b.addEventListener("pointerdown", e=>{
       if(G.state!=="play"||G.used[it.id]||b.disabled) return;

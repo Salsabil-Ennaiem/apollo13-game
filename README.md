@@ -88,6 +88,7 @@ css/styles.css                    Look and layout
 js/i18n.js                        English + French text
 js/game.js                        Gameplay, 3D cabin, sound, scoring, tutorial
 img/mat-*.png                     Photos of the real objects (Reference folder)
+img/mat-flightplan|checklist|stowage.svg  Illustrations for items without a photo (Parts box)
 img/cabin-install.jpg, nasm-*.jpg Historical photos of the final adapter (Research)
 audio/*.mp3                       Radio + breathing loops (MP3: plays on iPhone / Safari)
 supabase/functions/submit-score/  Score submission Edge Function (Deno)
