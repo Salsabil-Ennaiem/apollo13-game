@@ -902,9 +902,19 @@ function attempt(){
   }
 }
 function nextRole(){ return ROLES.find(r=>!G.filled[r]&&(PREREQ[r]||[]).every(p=>G.filled[p])); }
+// A time penalty must hurt for real: the clock drops AND the CO₂ bar jumps as if those seconds had passed
+function penalty(sec){
+  G.time=Math.max(0,G.time-sec);
+  const rate=((100-CFG.start)/G.dur)*.95*(1-.15*G.step);          // same rate the frame loop uses
+  G.co2=Math.min(100,G.co2+rate*sec);
+  const tm=$("tm"); if(!tm) return;
+  tm.classList.remove("pen"); void tm.offsetWidth; tm.classList.add("pen");   // red flash on the timer
+  const f=document.createElement("span"); f.className="pen-float"; f.textContent="−"+sec+"s";
+  tm.parentNode.appendChild(f); setTimeout(()=>f.remove(),1200);
+}
 function hint(){
   if(G.state!=="play"||G.hints>=CFG.hints||G.solved) return;
-  G.hints++; G.time=Math.max(0,G.time-CFG.hintCost);
+  G.hints++; penalty(CFG.hintCost);
   $("hl").textContent=CFG.hints-G.hints;
   const r=nextRole();
   if(r){
@@ -1166,7 +1176,7 @@ function init(){
   $("bResearch").onclick=()=>{
     const opening=$("researchPanel").classList.contains("hide");
     if(opening&&G.state==="play"&&!G.researched&&!G.solved){      // first look costs time; re-opening is free
-      G.researched=true; G.time=Math.max(0,G.time-CFG.researchCost);
+      G.researched=true; penalty(CFG.researchCost);
       say(`${t("research")} (−${CFG.researchCost}s)`);
     }
     openPanel(opening?"research":null);
