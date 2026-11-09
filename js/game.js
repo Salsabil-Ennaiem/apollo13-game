@@ -59,8 +59,7 @@ const G = {
   log:[], startTs:0, lastSubmit:null, filled:{}, hintLvl:{}
 };
 
-let reduced = false ;
-//matchMedia("(prefers-reduced-motion: reduce)").matches;
+let reduced = false;   // stress effects ON by default; players can tick "Reduced effects" in Settings
 let muted = false, vol = .6;
 
 function fail(e){
@@ -162,7 +161,7 @@ window.applyLang = function applyLang(){
   setText("tResearchTitle", t("researchTitle"));
   setText("tMore", t("more")); setText("tSettings", t("settings"));
   ["capBag","capCard","capTape","capHoseM","capSock","capCanSq","capCanRd"].forEach(k=>setText(k,t(k)));
-  setText("coachSkip", t("tutSkip")); setText("coachPaused", t("tutPaused"));
+  setText("tTutOpt", t("tutOpt")); setText("coachSkip", t("tutSkip")); setText("coachPaused", t("tutPaused"));
   setText("capCabin", t("capCabin"));
   setText("capSide", t("capSide"));
   setText("capHose", t("capHose"));
@@ -824,13 +823,13 @@ function tutGo(i){
   if(i===0) $("hud").querySelector(".side")?.setAttribute("open","");   // show the brief on step 1
   requestAnimationFrame(()=>requestAnimationFrame(tutPos));
 }
+function saveTut(){ try{ localStorage.setItem("a13_tut_off",$("sTut").checked?"0":"1"); }catch(_){} }
 function startTutorial(force){
-  if(!force){ try{ if(localStorage.getItem("a13_tut")) return; }catch(_){} }
+  if(!force&&!$("sTut").checked) return;      // ON by default, like the sound
   G.coach=true; $("coach").classList.remove("hide"); tutGo(0);
 }
 function endTutorial(){
   tutI=-1; G.coach=false; $("coach").classList.add("hide");
-  try{ localStorage.setItem("a13_tut","1"); }catch(_){}
   const sd=document.querySelector("#hud .side"); if(sd) sd.removeAttribute("open");
   openPanel(null);
 }
@@ -1180,10 +1179,12 @@ function init(){
   const sVolHud=$("sVolHud");
   if(sVolHud) sVolHud.oninput=()=>{ vol=+sVolHud.value; const m=$("sVol"); if(m) m.value=vol; applyChannelVol(); };
   $("coachNext").onclick=()=>tutGo(tutI+1);
-  $("coachSkip").onclick=endTutorial;
+  $("coachSkip").onclick=()=>{ $("sTut").checked=false; saveTut(); endTutorial(); };   // Skip = do not show again
+  $("sTut").onchange=saveTut;
+  try{ if(localStorage.getItem("a13_tut_off")==="1") $("sTut").checked=false; }catch(_){}
   $("bHelp").onclick=()=>{ closeMenu(); if(G.state==="play") startTutorial(true); };
   addEventListener("resize",tutPos);
-  addEventListener("keydown",e=>{ if(e.key==="Escape"&&G.coach) endTutorial(); });
+  addEventListener("keydown",e=>{ if(e.key==="Escape"&&G.coach) $("coachSkip").click(); });
   $("bHint").onclick=hint;
   $("bPause").onclick=pause;
   $("bResume").onclick=resume;

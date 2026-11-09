@@ -153,7 +153,7 @@ The cabin starts like the real problem: square canister present, round port empt
 
 ### Tutorial
 
-On the first round, a skippable coach-mark tutorial points to the brief, the Parts box, a part, the folder and Place. The timer is frozen while it is open. Replay it from ❓ in the ⋯ menu. It never reveals the solution.
+At the start of every round (on by default, like the sound), a skippable coach-mark tutorial points to the brief, the Parts box, a part, the folder and Place. The timer is frozen while it is open. **Skip** (or Esc) turns it off for next time; the **Tutorial** checkbox in Settings turns it back on, and ❓ in the ⋯ menu replays it any time. It never reveals the solution.
 
 ### Start-screen options
 
